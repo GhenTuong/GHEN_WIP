@@ -4210,6 +4210,7 @@
     </ClCompile>
     <ClCompile Include="..\WeaponMagazinedWGrenade.cpp" />
     <ClCompile Include="..\WeaponMagazineExtended.cpp" />
+    <ClCompile Include="..\WeaponMountedGun.cpp" />
     <ClCompile Include="..\WeaponPistol.cpp" />
     <ClCompile Include="..\WeaponPM.cpp">
       <PrecompiledHeaderFile>pch_script.h</PrecompiledHeaderFile>

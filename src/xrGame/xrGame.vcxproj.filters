@@ -11063,6 +11063,9 @@
     <ClCompile Include="WeaponMagazineExtended.cpp">
       <Filter>Core\Client\Objects\items &amp; weapons\Weapons\Custom Weapon\Automatic</Filter>
     </ClCompile>
+    <ClCompile Include="WeaponMountedGun.cpp">
+      <Filter>Core\Client\Objects\base</Filter>
+    </ClCompile>
     <ClCompile Include="player_hud_script.cpp">
       <Filter>Core\Client\Objects\items &amp; weapons\HudItem</Filter>
     </ClCompile>
