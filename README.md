@@ -237,6 +237,51 @@ How to compile exes:
 13. A short video demonstration of the entire process: https://youtu.be/MmZwyM2QO38
 
 ## Changelog
+**2026.03.16**
+
+Main and MT:
+  * LuaJIT increase memory allocation to 512MB
+  * Fixed potential crash in `spairs` if item was deleted from a table while iterating
+  * Stricter check for nil in `spairs` when ordering
+  * Replace only `__index` in `_g` metatable for always returning a copy of `VEC_ZERO`, `VEC_X`, `VEC_Y`, `VEC_Z`
+
+MT:
+  * Revert "Merge pull request #462 from knallpsi/detail-cache-optimization", needs further testing
+  * Revert `Alife registry uses sparse_map data structure for faster insertion, removal and iteration`, can cause random bugs
+
+**2026.03.15h1**
+
+Main and MT:
+  * Fixed Interaction Dot Marks issue when legs are enabled
+  * Fix spazzing shadow of legs in shadow phase, fix wrong placement of active item
+
+**2026.03.15**
+
+Main:
+  * Backport from MT: SSS phase_ssfx_sss_ext add more safety
+
+Main and MT:
+  * Legs rendering improvements
+    * Code cleanup
+    * `bip01_spine` is attached to pelvis with optional y offset `g_legs_spine_offset_y`, default 0.1
+    * Hiding neck instead of head
+    * Correct player shadow placement when legs are enabled
+  * Min-Heap based `spairs` iterator
+    * Supports early break without sorting whole table
+    * Faster retrieval of the first item
+  * Disable `alife():object(id)` invalid id spam on `pda.calculate_rankings`
+  * When `on_loading_screen_key_prompt` happens, perform Lua GC and call `jit.flush`
+  * leer-h: Command to disable actor body/legs model rotation delay. Functionality to load new animations for Actor\NPC without editing the existing stalker_animation.omf or including new omf's in the model's motion refs (https://github.com/themrdemonized/xray-monolith/pull/457)
+  * knallpsi: UI optimization, crc32 replacement (https://github.com/themrdemonized/xray-monolith/pull/463)
+  * GhenTuong:
+    * CWeaponStatMgun: Add camera effect when shooting and hand model/animation (https://github.com/themrdemonized/xray-monolith/pull/464)
+    * ltx_help_ex.script edit for WeaponStatMgun and Projector (https://github.com/themrdemonized/xray-monolith/pull/471)
+
+MT:
+  * nullptr check in `CAgentManagerPropertyEvaluatorEnemy::_value_type CAgentManagerPropertyEvaluatorEnemy::evaluate()`
+  * Alife registry uses `sparse_map` data structure for faster insertion, removal and iteration
+  * knallpsi: Details cache update optimization (https://github.com/themrdemonized/xray-monolith/pull/462)
+
 **2026.03.10**
 
 MT:
@@ -1821,3 +1866,4 @@ override = true
 
 * Exported distance_to_xz_sqr() function of Fvector
 * Redesigned duplicate section error, it will additionally print what file adds the section in the first place in addition to the file that has the duplicate
+

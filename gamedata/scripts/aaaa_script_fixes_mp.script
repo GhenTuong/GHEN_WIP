@@ -626,12 +626,14 @@ function pda.calculate_rankings()
 	
 	-- check all stalker server objects
 	for i, _ in pairs(db.offline_objects) do
-		local se_obj = sim:object(i)
-		if (se_obj and IsStalker(nil,se_obj:clsid()) and se_obj:alive() and se_obj:community() ~= "zombied" and se_obj:community() ~= "trader") then
-			-- Check if object has a story id, if it does they are probably unique
-			local sid = story_objects.story_id_by_object_id[se_obj.id]
-			if not (sid) then
-				t[se_obj.id] = se_obj:rank()
+		if i ~= 65535 then
+			local se_obj = sim:object(i)
+			if (se_obj and IsStalker(nil,se_obj:clsid()) and se_obj:alive() and se_obj:community() ~= "zombied" and se_obj:community() ~= "trader") then
+				-- Check if object has a story id, if it does they are probably unique
+				local sid = story_objects.story_id_by_object_id[se_obj.id]
+				if not (sid) then
+					t[se_obj.id] = se_obj:rank()
+				end
 			end
 		end
 	end
@@ -783,6 +785,15 @@ function actor_on_first_update_register_callbacks()
 	RegisterScriptCallback("server_object_on_register", server_object_on_register_remove_stale_data)
 end
 
+-- Perform luagc cleanup
+function luagc_cleanup()
+	printf("~[luagc_cleanup] collectgarbage before=%sKb",collectgarbage("count")*1024)
+	collectgarbage("collect")
+	collectgarbage("collect")
+	if jit and jit.flush then jit.flush() end
+	printf("~[luagc_cleanup] collectgarbage after=%sKb",collectgarbage("count")*1024)
+end
+
 function on_game_start()
 	RegisterScriptCallback("actor_on_first_update", actor_on_first_update_calculate_rankings)
 	RegisterScriptCallback("actor_on_first_update", actor_on_first_update_register_callbacks)
@@ -793,4 +804,6 @@ function on_game_start()
 	
 	RegisterScriptCallback("npc_on_update", npc_on_update_force_trader_update)
 	RegisterScriptCallback("anomaly_on_before_activate", anomaly_on_before_activate_pathfinding)
+
+	RegisterScriptCallback("on_loading_screen_key_prompt", luagc_cleanup)
 end

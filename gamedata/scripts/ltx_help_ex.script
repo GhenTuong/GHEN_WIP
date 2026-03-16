@@ -90,10 +90,11 @@
 		ammo_class: (string) ammo section useable by this weapon. Can have multiple values seperated by commas.
 		ammo_mag_size: (number) Magazine size.
 		rpm: Round per minute.
+		fire_dispersion_base: (float) Base dispersion of the weapon. Will add up with gunner dispersion. Degree.
+		fire_dispersion_owner_scale: (float) How much gunner dispersion affect the final dispersion. Will multiply with gunner dispersion. Lower value mean gunner dispersion contribute less to the final dispersion.
 		shell_particles: (.pe) Discarded cartridges particle.
 		flame_particles: (.pe) Firing particle.
 		smoke_particles: (.pe) Firing particle.
-		fire_dispersion_owner_scale: 
 		on_before_use: (<script>.<function>(obj,cam_pos,cam_dir,foot_pos)) Return true to accept actor using the weapon.
 		net_spawn_after: (<script>.<function>(obj)) Run right after net_spawn. Allow overriding configurations done in net_spawn.
 		

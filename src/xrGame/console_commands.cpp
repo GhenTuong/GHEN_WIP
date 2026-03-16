@@ -132,7 +132,8 @@ extern BOOL g_apply_pdm_to_ads;
 extern BOOL g_smooth_ads_transition;
 extern BOOL g_allow_silencer_hide_tracer;
 
-extern BOOL showActorBody; //leer
+extern int showActorBody; //leer
+extern BOOL disableActorBodyRotationDelay; //leer
 
 //demonized: new console vars
 extern BOOL firstPersonDeath;
@@ -183,6 +184,7 @@ extern float IK_ALWAYS_CALC_DIST;
 extern BOOL r_optimize_calculate_bones;
 
 extern float legs_fwd_offset;
+extern float legs_spine_offset_y;
 extern BOOL legs_in_demo_record;
 
 extern CrosshairSettings g_crosshair_camera_near;
@@ -2622,6 +2624,7 @@ void CCC_RegisterCommands()
 	CMD1(CCC_FreezeTime, "freeze_time");
 
     CMD4(CCC_Float, "g_legs_fwd_offset", &legs_fwd_offset, -2.0f, 2.0f);
+    CMD4(CCC_Float, "g_legs_spine_offset_y", &legs_spine_offset_y, -1.0f, 1.0f);
     CMD4(CCC_Integer, "g_legs_in_demo_record", &legs_in_demo_record, 0, 1);
 
 	CMD3(CCC_Mask, "g_firepos", &psActorFlags, AF_FIREPOS);
@@ -3059,5 +3062,6 @@ void CCC_RegisterCommands()
 	CMD4(CCC_Float, "g_wallmark_range_static", &wallmark_range_static, 0.f, 1000.f);
 	CMD4(CCC_Float, "g_wallmark_range_skeleton", &wallmark_range_skeleton, 0.f, 1000.f);
 
-    CMD4(CCC_Integer, "show_actor_body", &showActorBody, 0, 1);
+    CMD4(CCC_Integer, "show_actor_body", &showActorBody, 0, 2);
+    CMD4(CCC_Integer, "disable_actor_body_rotation_delay", &disableActorBodyRotationDelay, 0, 1);
 }
