@@ -9,32 +9,37 @@
 #define DBG_MSG(fmt, ...) Msg("%s: " fmt, __FUNCTION__, ##__VA_ARGS__)
 
 class CGameObject;
+class CWeaponMountedGun;
 
-class CWeaponMountedGun : public CShootingObject
+class CWeaponMountedGun :
+    public CShootingObject
 {
 public:
-    CWeaponMountedGun(CGameObject *obj, LPCSTR sec, u16 bid);
+    CWeaponMountedGun(CGameObject* obj, LPCSTR sec, u16 bid);
     virtual ~CWeaponMountedGun();
-    CGameObject *object() { return m_object; }
-    script_attachment *atm() { return m_atm; }
+    CGameObject* object() { return m_object; }
+    script_attachment* atm() { return m_atm; }
     LPCSTR AttachName() { return m_attach_name.c_str(); }
     LPCSTR WeaponName() { return m_weapon_name.c_str(); }
+    bool IsAttachName(LPCSTR sec);
+    bool IsWeaponName(LPCSTR sec);
 
-    CGameObject *Gunner() { return m_gunner; }
-    void AttachGunner(CGameObject *obj);
+    CGameObject* Gunner() { return m_gunner; }
+    void AttachGunner(CGameObject* obj);
     void DetachGunner();
     virtual void renderable_Render();
 
+    void Load(LPCSTR section);
     void LoadWeapon(LPCSTR section);
+    void UpdateCL();
+
     bool GetEnable() { return m_enable; }
     void SetEnable(bool flag);
     bool IsActive() { return m_bActive; }
 
-    void UpdateCL();
-
 private:
-    CGameObject *m_object;
-    script_attachment *m_atm;
+    CGameObject* m_object;
+    script_attachment* m_atm;
     shared_str m_attach_name;
     shared_str m_weapon_name;
     u16 m_attach_bone;
@@ -68,23 +73,23 @@ private:
     float m_state_delay;
     HUD_SOUND_COLLECTION_LAYERED m_sounds;
 
-    CGameObject *m_gunner;
+    CGameObject* m_gunner;
 
     u16 m_iShotNum;
 
 protected:
     virtual bool IsHudModeNow() { return false; }
-    virtual const Fvector &get_CurrentFirePoint();
-    virtual const Fmatrix &get_ParticlesXFORM();
-    static void _BCL BoneCallbackX(CBoneInstance *B);
-    static void _BCL BoneCallbackY(CBoneInstance *B);
+    virtual const Fvector& get_CurrentFirePoint();
+    virtual const Fmatrix& get_ParticlesXFORM();
+    static void _BCL BoneCallbackX(CBoneInstance* B);
+    static void _BCL BoneCallbackY(CBoneInstance* B);
     void BoneCallbacks(bool flag);
     virtual void FireStart();
     virtual void FireEnd();
     virtual void UpdateFire();
     virtual void OnShot();
     void UpdateBarrelDir();
-    void ClampRotationHorz(float &tgt_val, const float &cur_val, const float &lim_min, const float &lim_max);
+    void ClampRotationHorz(float& tgt_val, const float& cur_val, const float& lim_min, const float& lim_max);
 
 
     IC u16 GetState() const { return m_state_index; }
@@ -101,7 +106,7 @@ protected:
 
     u8 m_ammoType;
     xr_vector<shared_str> m_ammoTypes;
-	xr_vector<CCartridge> m_magazine;
+    xr_vector<CCartridge> m_magazine;
     CCartridge m_DefaultCartridge;
 
 public:

@@ -14,6 +14,12 @@
 #include "PHDestroyable.h"
 #include "Explosive.h"
 
+#ifdef HELICOPTER_NEW
+#include "WeaponMountedGun.h"
+
+class CWeaponMountedGun;
+#endif
+
 class CScriptGameObject;
 class CLAItem;
 class CHelicopterMovManager;
@@ -378,6 +384,22 @@ public:
 #ifdef DEBUG
 public:
 	virtual void			OnRender						();
+#endif
+
+
+
+
+#ifdef HELICOPTER_NEW
+private:
+    xr_vector<CWeaponMountedGun> m_mounted_weapons;
+    BOOL MountedWeapon_net_Spawn(CSE_Abstract* DC);
+    void MountedWeapon_net_Destroy();
+    void MountedWeapon_UpdateCL();
+    void MountedWeapon_renderable_Render();
+
+public:
+    CWeaponMountedGun* GetMountedWeapon(LPCSTR name);
+
 #endif
 
 DECLARE_SCRIPT_REGISTER_FUNCTION

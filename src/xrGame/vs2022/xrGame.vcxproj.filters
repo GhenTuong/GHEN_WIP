@@ -9719,6 +9719,9 @@
     <ClCompile Include="..\helicopter_script.cpp">
       <Filter>Core\Client\Objects\vehicles\heli</Filter>
     </ClCompile>
+    <ClCompile Include="..\HelicopterMountedWeapon.cpp">
+      <Filter>Core\Client\Objects\vehicles\heli</Filter>
+    </ClCompile>
     <ClCompile Include="..\HelicopterMovementManager.cpp">
       <Filter>Core\Client\Objects\vehicles\heli</Filter>
     </ClCompile>

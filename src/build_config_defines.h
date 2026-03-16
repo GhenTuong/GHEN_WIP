@@ -46,6 +46,7 @@
 #define CAR_NEW											// Upgrade CCar.
 #define STATIONARYMGUN_NEW								// Upgrade CSE_ALifeStationaryMgun and CWeaponStatMgun.
 #define PROJECTOR_NEW									// Upgrade CProjector.
+#define HELICOPTER_NEW									// Upgrade CHelicopter.
 #define SPATIAL_CHANGE									// Upgrade spatial and feel_vision.
 #define EXPLOSIVE_CHANGE								// Upgrade CExplosive and its relatives.
 

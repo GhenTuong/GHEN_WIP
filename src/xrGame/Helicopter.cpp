@@ -26,6 +26,10 @@ CHelicopter::CHelicopter()
 
 	m_movement.parent = this;
 	m_body.parent = this;
+
+#ifdef HELICOPTER_NEW
+    m_mounted_weapons.clear();
+#endif
 }
 
 CHelicopter::~CHelicopter(){}
@@ -256,6 +260,10 @@ BOOL CHelicopter::net_Spawn(CSE_Abstract* DC)
 		}
 	}
 
+#ifdef HELICOPTER_NEW
+    MountedWeapon_net_Spawn(DC);
+#endif
+
 	return TRUE;
 }
 
@@ -274,6 +282,10 @@ void CHelicopter::net_Destroy()
 	m_movement.net_Destroy();
 #ifdef DEBUG
 	Device.seqRender.Remove(this);
+#endif
+
+#ifdef HELICOPTER_NEW
+    MountedWeapon_net_Destroy();
 #endif
 }
 
@@ -322,9 +334,20 @@ void CHelicopter::MoveStep()
 			                                     m_movement.LinearAcc_fw,
 			                                     -m_movement.LinearAcc_bk);
 
-
+#ifdef HELICOPTER_NEW
+        if (m_movement.curLinearSpeed < EPS_L)
+        {
+            m_movement.currPathH = desired_H;
+            m_movement.currPathP = desired_P;
+        }
+        else
+        {
+#endif
 		angle_lerp(m_movement.currPathH, desired_H, m_movement.GetAngSpeedHeading(m_movement.curLinearSpeed), STEP);
 		angle_lerp(m_movement.currPathP, desired_P, m_movement.GetAngSpeedPitch(m_movement.curLinearSpeed), STEP);
+#ifdef HELICOPTER_NEW
+        }
+#endif
 
 		dir.setHP(m_movement.currPathH, m_movement.currPathP);
 
@@ -414,6 +437,9 @@ void CHelicopter::UpdateCL()
 			m_brokenSound.set_position(XFORM().c);
 
 
+#ifdef HELICOPTER_NEW
+        MountedWeapon_UpdateCL();
+#endif
 			return;
 	}
 	else
@@ -450,6 +476,10 @@ void CHelicopter::UpdateCL()
 
 	IKinematics* K = smart_cast<IKinematics*>(Visual());
 	K->CalculateBones();
+
+#ifdef HELICOPTER_NEW
+    MountedWeapon_UpdateCL();
+#endif
 }
 
 void CHelicopter::shedule_Update(u32 time_delta)

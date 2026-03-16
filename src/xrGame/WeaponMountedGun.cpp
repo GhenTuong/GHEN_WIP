@@ -5,7 +5,7 @@
 #include "../Include/xrRender/Kinematics.h"
 
 
-CWeaponMountedGun::CWeaponMountedGun(CGameObject *obj, LPCSTR sec, u16 bid)
+CWeaponMountedGun::CWeaponMountedGun(CGameObject* obj, LPCSTR sec, u16 bid)
 {
     R_ASSERT(obj);
     R_ASSERT(sec);
@@ -53,26 +53,9 @@ CWeaponMountedGun::~CWeaponMountedGun()
     CShootingObject::Light_Destroy();
 }
 
-void CWeaponMountedGun::AttachGunner(CGameObject *obj)
+void CWeaponMountedGun::Load(LPCSTR section)
 {
-    if (m_enable == false)
-        return;
-    if (Gunner())
-        return;
-    if (obj == nullptr)
-        return;
-    m_gunner = obj;
-
-}
-
-void CWeaponMountedGun::DetachGunner()
-{
-    m_gunner = nullptr;
-}
-
-void CWeaponMountedGun::renderable_Render()
-{
-    CShootingObject::RenderLight();
+    LoadWeapon(section);
 }
 
 void CWeaponMountedGun::LoadWeapon(LPCSTR section)
@@ -89,12 +72,12 @@ void CWeaponMountedGun::LoadWeapon(LPCSTR section)
     LPCSTR ammo_class = pSettings->r_string(section, "ammo_class");
     if (ammo_class && strlen(ammo_class))
     {
-        string128 tmp;
+        string128 sec;
         int n = _GetItemCount(ammo_class);
         for (int i = 0; i < n; ++i)
         {
-            _GetItem(ammo_class, i, tmp);
-            m_ammoTypes.push_back(tmp);
+            _GetItem(ammo_class, i, sec);
+            m_ammoTypes.push_back(sec);
         }
     }
     R_ASSERT(m_ammoTypes.size());
@@ -104,9 +87,12 @@ void CWeaponMountedGun::LoadWeapon(LPCSTR section)
 
 void CWeaponMountedGun::SetEnable(bool flag)
 {
-    m_enable = flag;
-    if (m_enable)
+    if (flag)
     {
+        if (m_weapon_name.size() == 0)
+        {
+            return;
+        }
         LPCSTR vis = READ_IF_EXISTS(pSettings, r_string, WeaponName(), "visual", nullptr);
         R_ASSERT(vis);
 
@@ -118,9 +104,9 @@ void CWeaponMountedGun::SetEnable(bool flag)
         atm()->SetParentBone(m_attach_bone);
         atm()->spatial.type |= STYPE_FEELVISIONIGNORE;
 
-        IKinematics *K = atm()->dcast_PKinematics();
+        IKinematics* K = atm()->dcast_PKinematics();
         R_ASSERT(K);
-        CInifile *ini = K->LL_UserData();
+        CInifile* ini = K->LL_UserData();
         R_ASSERT(ini);
         const LPCSTR mwd = "mounted_weapon_definition";
 
@@ -130,10 +116,10 @@ void CWeaponMountedGun::SetEnable(bool flag)
         m_rotate_x_speed = deg2rad(READ_IF_EXISTS(ini, r_float, mwd, "rotate_x_speed", 10.0F));
         m_rotate_y_speed = deg2rad(READ_IF_EXISTS(ini, r_float, mwd, "rotate_y_speed", 10.0F));
 
-        CBoneData &BDX = K->LL_GetData(m_rotate_x_bone);
+        CBoneData& BDX = K->LL_GetData(m_rotate_x_bone);
         VERIFY(BDX.IK_data.type == jtJoint);
         m_lim_x_rot.set(BDX.IK_data.limits[0].limit.x, BDX.IK_data.limits[0].limit.y);
-        CBoneData &BDY = K->LL_GetData(m_rotate_y_bone);
+        CBoneData& BDY = K->LL_GetData(m_rotate_y_bone);
         VERIFY(BDY.IK_data.type == jtJoint);
         m_lim_y_rot.set(BDY.IK_data.limits[1].limit.x, BDY.IK_data.limits[1].limit.y);
 
@@ -148,12 +134,14 @@ void CWeaponMountedGun::SetEnable(bool flag)
         m_cur_y_rot = 0;
         m_tgt_x_rot = 0;
         m_tgt_y_rot = 0;
+        m_enable = true;
     }
     else
     {
         DetachGunner();
         object()->remove_attachment(AttachName());
         m_atm = nullptr;
+        m_enable = false;
     }
 }
 
@@ -170,27 +158,62 @@ void CWeaponMountedGun::UpdateCL()
     UpdateFire();
 }
 
-const Fvector &CWeaponMountedGun::get_CurrentFirePoint()
+bool CWeaponMountedGun::IsAttachName(LPCSTR sec)
+{
+    return sec && (xr_strcmp(m_attach_name, sec) == 0);
+}
+
+bool CWeaponMountedGun::IsWeaponName(LPCSTR sec)
+{
+    return sec && (xr_strcmp(m_weapon_name, sec) == 0);
+}
+
+void CWeaponMountedGun::AttachGunner(CGameObject* obj)
+{
+    if (m_enable == false)
+        return;
+    if (obj == nullptr)
+        return;
+    if (Gunner())
+        return;
+    m_gunner = obj;
+    Action(eActivate, 1);
+}
+
+void CWeaponMountedGun::DetachGunner()
+{
+    if (Gunner() == nullptr)
+        return;
+    m_gunner = nullptr;
+    Action(eActivate, 0);
+}
+
+void CWeaponMountedGun::renderable_Render()
+{
+    CShootingObject::RenderLight();
+}
+
+const Fvector& CWeaponMountedGun::get_CurrentFirePoint()
 {
     return m_fire_pos;
 }
 
-const Fmatrix &CWeaponMountedGun::get_ParticlesXFORM()
+const Fmatrix& CWeaponMountedGun::get_ParticlesXFORM()
 {
     return m_fire_bone_xform;
 }
 
-void CWeaponMountedGun::BoneCallbackX(CBoneInstance *B)
+void CWeaponMountedGun::BoneCallbackX(CBoneInstance* B)
 {
-    CWeaponMountedGun *wmg = static_cast<CWeaponMountedGun *>(B->callback_param());
+    CWeaponMountedGun* wmg = static_cast<CWeaponMountedGun*>(B->callback_param());
     Fmatrix xfm;
     xfm.rotateX(wmg->m_cur_x_rot);
     B->mTransform.mulB_43(xfm);
 }
 
-void CWeaponMountedGun::BoneCallbackY(CBoneInstance *B)
+void CWeaponMountedGun::BoneCallbackY(CBoneInstance* B)
 {
-    CWeaponMountedGun *wmg = static_cast<CWeaponMountedGun *>(B->callback_param());
+    CWeaponMountedGun* wmg = static_cast<CWeaponMountedGun*>(B->callback_param());
     Fmatrix xfm;
     xfm.rotateY(wmg->m_cur_y_rot);
     B->mTransform.mulB_43(xfm);
@@ -203,9 +226,9 @@ void CWeaponMountedGun::BoneCallbacks(bool flag)
         return;
     }
 
-    IKinematics *K = atm()->dcast_PKinematics();
-    CBoneInstance &BX = K->LL_GetBoneInstance(m_rotate_x_bone);
-    CBoneInstance &BY = K->LL_GetBoneInstance(m_rotate_y_bone);
+    IKinematics* K = atm()->dcast_PKinematics();
+    CBoneInstance& BX = K->LL_GetBoneInstance(m_rotate_x_bone);
+    CBoneInstance& BY = K->LL_GetBoneInstance(m_rotate_y_bone);
 
     if (flag)
     {
@@ -227,7 +250,7 @@ void CWeaponMountedGun::BoneCallbacks(bool flag)
 void CWeaponMountedGun::UpdateBarrelDir()
 {
     Fmatrix xfm = atm()->GetTransform();
-    IKinematics *K = atm()->dcast_PKinematics();
+    IKinematics* K = atm()->dcast_PKinematics();
 
     /* Update fire bone. */
     m_fire_bone_xform = K->LL_GetTransform(m_fire_bone);
@@ -322,7 +345,7 @@ void CWeaponMountedGun::UpdateFire()
 
 void CWeaponMountedGun::OnShot()
 {
-    CGameObject *owner = (Gunner()) ? Gunner() : object();
+    CGameObject* owner = (Gunner()) ? Gunner() : object();
     FireBullet(m_fire_pos, m_fire_dir, GetFireDispersion(true), m_DefaultCartridge, owner->ID(), object()->ID(), true, m_iShotNum);
     m_iShotNum++;
 
@@ -337,7 +360,7 @@ void CWeaponMountedGun::OnShot()
     m_sounds.PlaySound("sndShoot", m_fire_pos, owner, false);
 }
 
-void CWeaponMountedGun::ClampRotationHorz(float &tgt_val, const float &cur_val, const float &lim_min, const float &lim_max)
+void CWeaponMountedGun::ClampRotationHorz(float& tgt_val, const float& cur_val, const float& lim_min, const float& lim_max)
 {
     /* Rotating limit must be lesser than 180 in both direction. */
     if (abs(lim_min) < PI || abs(lim_max) < PI)

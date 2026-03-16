@@ -9713,6 +9713,9 @@
     <ClCompile Include="Helicopter.cpp">
       <Filter>Core\Client\Objects\vehicles\heli</Filter>
     </ClCompile>
+    <ClCompile Include="HelicopterMountedWeapon.cpp">
+      <Filter>Core\Client\Objects\vehicles\heli</Filter>
+    </ClCompile>
     <ClCompile Include="Helicopter2.cpp">
       <Filter>Core\Client\Objects\vehicles\heli</Filter>
     </ClCompile>
