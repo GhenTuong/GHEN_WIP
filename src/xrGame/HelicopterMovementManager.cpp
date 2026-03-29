@@ -513,3 +513,28 @@ void CHelicopter::OnRender()
 
 }
 #endif
+
+
+#ifdef HELICOPTER_NEW
+bool CHelicopter::EnhancedMovement()
+{
+    return m_heli_enhanced_movement_flag;
+}
+
+void CHelicopter::SetLookAhead()
+{
+    m_body.m_look_type = SHeliBodyState::eLookAhead;
+}
+
+void CHelicopter::SetLookPoint(Fvector val)
+{
+    m_body.m_look_type = SHeliBodyState::eLookPoint;
+    m_body.m_look_pos = val;
+}
+
+void CHelicopter::SetLookAngle(float val)
+{
+    m_body.m_look_type = SHeliBodyState::eLookAngle;
+    m_body.m_look_ang = val;
+}
+#endif

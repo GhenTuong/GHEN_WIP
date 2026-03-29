@@ -483,6 +483,14 @@ float getA(float t0, float a1, float a0)
 
 float GetCurrAcc(float V0, float V1, float dist, float a0, float a1)
 {
+/*
+Parameters:
+V0 → current velocity
+V1 → target velocity at the end
+dist → distance to target
+a0 → acceleration for phase 1 (usually accelerate)
+a1 → acceleration for phase 2 (usually decelerate / brake, often negative)
+*/
 	float t10, t11, t0, t1;
 
 	t10 = t_xx(V0, V1, a0, a1, dist, 1.0f);

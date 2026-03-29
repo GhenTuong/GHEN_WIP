@@ -13,6 +13,7 @@ CWeaponMountedGun::CWeaponMountedGun(CGameObject* obj, LPCSTR sec, u16 bid)
     m_object = obj;
     m_attach_name._set(sec);
     m_attach_bone = bid;
+    m_atm = nullptr;
 
     m_enable = false;
     m_bActive = false;

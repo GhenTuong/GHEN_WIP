@@ -6,8 +6,6 @@
 #include "level.h"
 #include "script_attachment_manager.h"
 
-#define DBG_MSG(fmt, ...) Msg("%s: " fmt, __FUNCTION__, ##__VA_ARGS__)
-
 class CGameObject;
 class CWeaponMountedGun;
 

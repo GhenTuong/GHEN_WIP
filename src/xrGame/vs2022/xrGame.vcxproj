@@ -1944,6 +1944,7 @@
     <ClInclude Include="..\Weapon.h" />
     <ClInclude Include="..\WeaponAK74.h" />
     <ClInclude Include="..\WeaponAmmo.h" />
+    <ClInclude Include="..\WeaponMountedGun.h" />
     <ClInclude Include="..\WeaponAutomaticShotgun.h" />
     <ClInclude Include="..\WeaponBinoculars.h" />
     <ClInclude Include="..\WeaponBinocularsVision.h" />

@@ -5739,6 +5739,9 @@
     <ClInclude Include="..\WeaponAmmo.h">
       <Filter>Core\Client\Objects\items &amp; weapons\Weapons\Custom Weapon\Ammo</Filter>
     </ClInclude>
+    <ClInclude Include="..\WeaponMountedGun.h">
+      <Filter>Core\Client\Objects\items &amp; weapons\Weapons\Custom Weapon\Weapon Generic</Filter>
+    </ClInclude>
     <ClInclude Include="..\WeaponCustomPistol.h">
       <Filter>Core\Client\Objects\items &amp; weapons\Weapons\Custom Weapon\Pistol</Filter>
     </ClInclude>

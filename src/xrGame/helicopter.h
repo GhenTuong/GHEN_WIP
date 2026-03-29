@@ -66,6 +66,17 @@ struct SHeliBodyState
 	void save(NET_Packet& output_packet);
 	void load(IReader& input_packet);
 	void Load(LPCSTR section);
+    
+#ifdef HELICOPTER_NEW
+    enum EHeliLook {
+        eLookAhead,
+        eLookPoint,
+        eLookAngle,
+    };
+    u8 m_look_type;
+    Fvector m_look_pos;
+    float m_look_ang;
+#endif
 };
 
 enum EHeilMovementState { eMovNone, eMovToPoint, eMovPatrolPath, eMovRoundPath, eMovLanding, eMovTakeOff };
@@ -400,6 +411,14 @@ private:
 public:
     CWeaponMountedGun* GetMountedWeapon(LPCSTR name);
 
+private:
+    bool m_heli_enhanced_movement_flag;
+
+public:
+    bool EnhancedMovement();
+    void SetLookAhead();
+    void SetLookPoint(Fvector val);
+    void SetLookAngle(float val);
 #endif
 
 DECLARE_SCRIPT_REGISTER_FUNCTION

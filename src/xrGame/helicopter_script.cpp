@@ -111,6 +111,18 @@ void CHelicopter::script_register(lua_State* L)
 		.def_readonly("m_exploded", &CHelicopter::m_exploded)
 		.def_readonly("m_dead", &CHelicopter::m_dead)
 
+#ifdef HELICOPTER_NEW
+		.enum_("look")
+		[
+			value("eLookAhead", int(SHeliBodyState::eLookAhead)),
+			value("eLookPoint", int(SHeliBodyState::eLookPoint)),
+			value("eLookAngle", int(SHeliBodyState::eLookAngle))
+		]
+		.def("SetLookAhead", &CHelicopter::SetLookAhead)
+		.def("SetLookPoint", &CHelicopter::SetLookPoint)
+		.def("SetLookAngle", &CHelicopter::SetLookAngle)
+#endif
+
 		//				.def_readwrite("", &CHelicopter::)
 
 	];

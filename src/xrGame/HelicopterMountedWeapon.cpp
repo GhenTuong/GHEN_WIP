@@ -24,10 +24,10 @@ BOOL CHelicopter::MountedWeapon_net_Spawn(CSE_Abstract* DC)
     if (ini->line_exist(cNameSect_str(), "mounted_weapons"))
     {
         LPCSTR str = ini->r_string(cNameSect_str(), "mounted_weapons");
-        string128 sec;
         int n = _GetItemCount(str);
         for (int i = 0; i < n; ++i)
         {
+            string128 sec;
             _GetItem(str, i, sec);
             if (strlen(sec))
             {

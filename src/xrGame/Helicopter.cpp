@@ -125,6 +125,10 @@ void CHelicopter::Load(LPCSTR section)
 	m_light_color.mul_rgb(m_light_brightness);
 	LPCSTR lanim = pSettings->r_string(section, "light_color_animmator");
 	m_lanim = LALib.FindItem(lanim);
+
+#ifdef HELICOPTER_NEW
+    m_heli_enhanced_movement_flag = !!READ_IF_EXISTS(pSettings, r_bool, section, "heli_enhanced_movement", FALSE);
+#endif
 }
 
 void CHelicopter::reload(LPCSTR section)
@@ -217,7 +221,11 @@ BOOL CHelicopter::net_Spawn(CSE_Abstract* DC)
 	m_bind_y.set(matrices[m_rotate_y_bone].c);
 
 	IKinematicsAnimated* A = smart_cast<IKinematicsAnimated*>(Visual());
+#ifdef HELICOPTER_NEW
+    if (A && A->LL_MotionID(heli->startup_animation.c_str()).valid())
+#else
 	if (A)
+#endif
 	{
 			A->PlayCycle(*heli->startup_animation);
 		K->CalculateBones(TRUE);
@@ -334,18 +342,18 @@ void CHelicopter::MoveStep()
 			                                     m_movement.LinearAcc_fw,
 			                                     -m_movement.LinearAcc_bk);
 
-#ifdef HELICOPTER_NEW
-        if (m_movement.curLinearSpeed < EPS_L)
-        {
-            m_movement.currPathH = desired_H;
-            m_movement.currPathP = desired_P;
-        }
-        else
-        {
-#endif
 		angle_lerp(m_movement.currPathH, desired_H, m_movement.GetAngSpeedHeading(m_movement.curLinearSpeed), STEP);
 		angle_lerp(m_movement.currPathP, desired_P, m_movement.GetAngSpeedPitch(m_movement.curLinearSpeed), STEP);
+
 #ifdef HELICOPTER_NEW
+        if (EnhancedMovement())
+        {
+            /* Snap straight to a new direction if current velocity is lesser the what acceleration could add in this frame. */
+            if (m_movement.curLinearSpeed < m_movement.curLinearAcc * STEP)
+            {
+                m_movement.currPathH = desired_H;
+                m_movement.currPathP = desired_P;
+            }
         }
 #endif
 
@@ -383,11 +391,37 @@ void CHelicopter::MoveStep()
 		}
 	};
 
+#ifdef HELICOPTER_NEW
+    if (EnhancedMovement())
+    {
+        switch (m_body.m_look_type)
+        {
+        case SHeliBodyState::eLookAhead:
+        {
+            angle_lerp(m_body.currBodyHPB.x, m_movement.currPathH, m_movement.GetAngSpeedHeading(m_movement.curLinearSpeed), STEP);
+            break;
+        }
+        case SHeliBodyState::eLookPoint:
+        {
+            float look = Fvector().sub(m_body.m_look_pos, m_movement.currP).normalize_safe().getH();
+            angle_lerp(m_body.currBodyHPB.x, look, m_movement.GetAngSpeedHeading(m_movement.curLinearSpeed), STEP);
+            break;
+        }
+        case SHeliBodyState::eLookAngle:
+        {
+            angle_lerp(m_body.currBodyHPB.x, m_body.m_look_ang, m_movement.GetAngSpeedHeading(m_movement.curLinearSpeed), STEP);
+            break;
+        }
+        default:
+            break;
+        }
+    }
+    else
+#endif
 	if (m_body.b_looking_at_point)
 	{
 		Fvector desired_dir;
 		desired_dir.sub(m_body.looking_point, m_movement.currP).normalize_safe();
-
 		float center_desired_H, tmp_P;
 		desired_dir.getHP(center_desired_H, tmp_P);
 		angle_lerp(m_body.currBodyHPB.x, center_desired_H, m_movement.GetAngSpeedHeading(m_movement.curLinearSpeed),
@@ -435,7 +469,6 @@ void CHelicopter::UpdateCL()
 
 		if (m_brokenSound._feedback())
 			m_brokenSound.set_position(XFORM().c);
-
 
 #ifdef HELICOPTER_NEW
         MountedWeapon_UpdateCL();
