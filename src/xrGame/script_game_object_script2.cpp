@@ -124,6 +124,8 @@ class_<CScriptGameObject> script_register_game_object1(class_<CScriptGameObject>
 		.def("group", &CScriptGameObject::Group)
 		.def("change_team", (void (CScriptGameObject::*)(u8, u8, u8))(&CScriptGameObject::ChangeTeam))
 		.def("set_visual_memory_enabled", &CScriptGameObject::SetVisualMemoryEnabled)
+		.def("get_object_visible_distance", &CScriptGameObject::GetObjectVisibleDistance)
+		.def("get_object_luminocity", &CScriptGameObject::GetObjectLuminocity)
 		.def("kill", &CScriptGameObject::Kill)
 		.def("hit", &CScriptGameObject::Hit)
 		.def("play_cycle", (void (CScriptGameObject::*)(LPCSTR))(&CScriptGameObject::play_cycle))
