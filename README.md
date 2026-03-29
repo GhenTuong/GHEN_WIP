@@ -237,6 +237,91 @@ How to compile exes:
 13. A short video demonstration of the entire process: https://youtu.be/MmZwyM2QO38
 
 ## Changelog
+**2026.03.29**
+
+* Main and MT:
+  * Optimization of `CEnemyManager::useful`:
+    * Add short live caching of Lua call results, prevents expensive lua calls each frame esp. in GAMMA
+    * Jitter cache time based on `entity_alive->ID` so that the updates will be spread out between frames
+    * Big performance gain in firefights vs NPCs, up to 100% in GAMMA
+    * `g_enemy_manager_useful_cache_time` to control the cache expiration time. Default is 250ms. -1 will disable caching
+    
+    ![image](http://puu.sh/KKJxE/a4770b7660.jpg)
+
+  * Legs: 
+    * Fixed rendering attached items shadows such as headlight
+    * `g_legs_render_attachments_shadow` to toggle rendering attached items shadows, default enabled 
+  * Fixed Out Of Memory error due to abnormal size of underbarrel ammo in net packet
+  * `alife():object_count()` function to return current alife count
+  * Lua changes:
+    * `_g_patches`:
+      * Patch `pairs` and `ipairs` to use methods from metatables if they are defined (Lua 5.2 functionality)
+      * Simpler `empty_table` and `iempty_table`
+      * `get_object_by_id` uses `gameobjects_registry`, more reliable than `db.storage`
+      * `alife_object` uses `server_objects_registry`, less calls to engine unless necessary
+      * `fis_zero` and `fsimilar` functions
+      * `MinHeap` return self reference whenever possible
+      * simple `OrderedTable` class
+      * `_G` metatable newindex change to prevent shadowing const table
+    * `callbacks_gameobject`:
+      * `server_objects_registry` table contains all alife server objects for fast lookup without engine call
+    * `item_weapon`:
+      * A little more optimized ammo aggregation algorithm
+  * erepb: expose CALifeSimulator::update_scheduled to lua as force_update (https://github.com/themrdemonized/xray-monolith/pull/493)
+  * Verdatim25: Add a new method to CWeapon to allow for force changing zoom type (https://github.com/themrdemonized/xray-monolith/pull/495)
+
+MT:
+  * Fixed crash when using `log_timestamps`, fixes https://github.com/themrdemonized/xray-monolith/issues/485
+  * Fixed "Out of memory" error in `feel_vision.h` in `feel_vision_get` method
+  * Disabled multithreaded HOM, fixes artifacts near screen borders
+  * Fixed potential nullptr crash in `CMemoryManager::make_object_visible_somewhen`
+  * Fixed potential game lockup due to invalid coordinates for IK calculation
+  * Wallmarks: Increase MAX_TRIS from 16384 to 32768
+
+**2026.03.22**
+
+Main and MT:
+  * `play_cycle CA->PlayCycle` return value check on nullptr
+  * Legs improvements:
+    * In shadowmap phase render full body model without hiding bones instead of moving the player's, fixes some bugs like reappearing level transition dialog
+    * Adjust player's torch and bolt offsets so they won't float in the space
+    * Model is attached to the camera, fixing bugs with body displacement when colliding with objects or stalkers
+    * `g_legs_in_low_crounch` command to disable legs rendering when low crouching, default enabled
+  * `lua_busy_hands_debug` command to debug common "Busy Hands" errors, default enabled:
+    * Currently, it debugs two groups of possible errors, the most common ones:
+      * Calling methods on already destroyed `CScriptGameObject` objects
+      * Mismatched parameters when calling methods
+    * When critical error occurs that will lead to "Busy Hands":
+      * Lua callback will make a temporary save and popup "Lua Critical Error" window
+      * In the window you can choose to immediately return to Main Menu, reload the temporary save, or ignore and continue
+      ![image](http://puu.sh/KKpnk/2353c0f344.jpg)
+  * Replacing time event system with Indexed Min-Heap based time events
+    * Peek only closest event
+    * Fast insert and removal
+    * Safety check when creating time event but function is nil
+    * Postpone events when `sleep_active` flag is active so they won't be fired all at once when the flag is lifted
+    * My `optimized_time_events` script is blacklisted from loading so that new system will work all the time
+  * Minor optimizations in `_g.script`
+    * Simpler `is_empty`
+    * Simpler `shuffle_table`
+    * Simpler `size_table`
+    * Reservoir sampling based `random_key_table`
+    * `random_choice` without allocating tables
+  * Revised the fix for `DynamicNewsManager` to be more robust
+  * Fixed script_fixes_mp:727 `attempt to index local tm (nil value)`
+  * Fixed `state_mgr_animation.delayed_attach` to not spam time events
+  * Fixed `ui_debug_main.delayed_attach` to not spam time events
+  * Fixed `ui_enemy_health.cs_remove` spamming in time events because the wrapper function for time event doesn't return true
+  * Faster algorithm for `spairs` if order function is not provided  
+  * leer-h: Update poltergeist.cpp (https://github.com/themrdemonized/xray-monolith/pull/475)
+  * erepb:
+    * fix moving target pathing (https://github.com/themrdemonized/xray-monolith/pull/474)
+    * use m_location_level to sort map spots (https://github.com/themrdemonized/xray-monolith/pull/476)
+    * fix infinite loop when no sound devices in system (https://github.com/themrdemonized/xray-monolith/pull/479)
+
+MT:
+  * .peak lights has slightly higher intensity to be more visually noticeable compared to SSS
+
 **2026.03.16**
 
 Main and MT:
@@ -1866,4 +1951,3 @@ override = true
 
 * Exported distance_to_xz_sqr() function of Fvector
 * Redesigned duplicate section error, it will additionally print what file adds the section in the first place in addition to the file that has the duplicate
-

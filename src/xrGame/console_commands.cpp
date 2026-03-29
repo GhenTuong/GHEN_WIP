@@ -87,6 +87,7 @@ extern int psLua_ParallelGC_CallAmount;
 extern BOOL psLua_ParallelGC_debug;
 extern BOOL psLua_ParallelGC;
 extern BOOL lua_debug;
+BOOL lua_busy_hands_debug = TRUE;
 
 float g_end_modif = 0.f;
 
@@ -137,7 +138,6 @@ extern BOOL disableActorBodyRotationDelay; //leer
 
 //demonized: new console vars
 extern BOOL firstPersonDeath;
-extern BOOL g_legs_enabled;
 extern BOOL pseudogiantCanDamageObjects;
 extern BOOL use_english_text_for_missing_translations;
 namespace crash_saving {
@@ -183,9 +183,15 @@ extern float IK_CALC_SSA;
 extern float IK_ALWAYS_CALC_DIST;
 extern BOOL r_optimize_calculate_bones;
 
+extern BOOL g_legs_enabled;
 extern float legs_fwd_offset;
 extern float legs_spine_offset_y;
 extern BOOL legs_in_demo_record;
+extern BOOL legs_in_low_crouch;
+extern BOOL legs_attach_to_camera;
+extern BOOL legs_render_attachments_shadow;
+
+extern int enemy_manager_useful_cache_time;
 
 extern CrosshairSettings g_crosshair_camera_near;
 extern CrosshairSettings g_crosshair_camera_far;
@@ -2492,6 +2498,7 @@ void CCC_RegisterCommands()
 	CMD4(CCC_Integer, "lua_parallel_gc", &psLua_ParallelGC, 0, 1);
 
 	CMD4(CCC_Integer, "lua_debug", &lua_debug, 0, 1);
+	CMD4(CCC_Integer, "lua_busy_hands_debug", &lua_busy_hands_debug, 0, 1);
 
 #ifdef DEBUG
 	CMD3(CCC_Mask, "ai_debug", &psAI_Flags, aiDebug);
@@ -2626,6 +2633,11 @@ void CCC_RegisterCommands()
     CMD4(CCC_Float, "g_legs_fwd_offset", &legs_fwd_offset, -2.0f, 2.0f);
     CMD4(CCC_Float, "g_legs_spine_offset_y", &legs_spine_offset_y, -1.0f, 1.0f);
     CMD4(CCC_Integer, "g_legs_in_demo_record", &legs_in_demo_record, 0, 1);
+    CMD4(CCC_Integer, "g_legs_in_low_crouch", &legs_in_low_crouch, 0, 1);
+    CMD4(CCC_Integer, "g_legs_attach_to_camera", &legs_attach_to_camera, 0, 1);
+    CMD4(CCC_Integer, "g_legs_render_attachments_shadow", &legs_render_attachments_shadow, 0, 1);
+
+    CMD4(CCC_Integer, "g_enemy_manager_useful_cache_time", &enemy_manager_useful_cache_time, -1, 500);
 
 	CMD3(CCC_Mask, "g_firepos", &psActorFlags, AF_FIREPOS);
 	CMD3(CCC_Mask, "g_firepos_zoom", &psActorFlags, AF_FIREPOS_ZOOM);

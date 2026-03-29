@@ -6,8 +6,10 @@
 #include "Inventory.h"
 #include "../Include/xrRender/Kinematics.h"
 #include "../Include/xrRender/KinematicsAnimated.h"
+#include "../xrEngine/FDemoRecord.h"
+#include "../xrEngine/CameraBase.h"
 
-extern BOOL g_legs_enabled;
+BOOL g_legs_enabled = FALSE;
 
 void player_legs_controller::destroy()
 {
@@ -27,44 +29,52 @@ bool player_legs_controller::resolve_config(CActor* actor, shared_str& sect, sha
     PIItem outfit = actor->inventory().ItemFromSlot(OUTFIT_SLOT);
     shared_str current_outfit = outfit
         ? outfit->object().cNameSect()
-        : shared_str("");
+        : shared_str("actor");
 
-    if (m_last_outfit_sect != current_outfit)
+    if (m_last_outfit_sect == current_outfit)
     {
-        m_last_outfit_sect = current_outfit;
+        sect = m_last_outfit_sect;
+        model = m_last_model;
+        return true;
     }
+
+    m_last_outfit_sect = current_outfit;
 
     if (outfit)
     {
-        if (pSettings->line_exist(current_outfit, "legs_visual"))
+        if (pSettings->line_exist(m_last_outfit_sect, "legs_visual"))
         {
-            sect = current_outfit;
-            model = pSettings->r_string(current_outfit, "legs_visual");
+            sect = m_last_outfit_sect;
+            m_last_model = pSettings->r_string(m_last_outfit_sect, "legs_visual");
+            model = m_last_model;
             return true;
         }
 
-        if (pSettings->line_exist(current_outfit, "actor_visual"))
+        if (pSettings->line_exist(m_last_outfit_sect, "actor_visual"))
         {
-            sect = current_outfit;
-            model = pSettings->r_string(current_outfit, "actor_visual");
+            sect = m_last_outfit_sect;
+            m_last_model = pSettings->r_string(m_last_outfit_sect, "actor_visual");
+            model = m_last_model;
             return true;
         }
 
-        warn_once("outfit [%s] has no legs_visual or actor_visual, fallback to default", current_outfit.c_str());
+        warn_once("outfit [%s] has no legs_visual or actor_visual, fallback to default", m_last_outfit_sect.c_str());
     }
 
     // default
     if (pSettings->line_exist("actor", "legs_visual"))
     {
-        sect = "actor";
-        model = pSettings->r_string("actor", "legs_visual");
+        sect = m_last_outfit_sect;
+        m_last_model = pSettings->r_string(m_last_outfit_sect, "legs_visual");
+        model = m_last_model;
         return true;
     }
 
-    if (pSettings->line_exist("actor", "visual"))
+    if (pSettings->line_exist(m_last_outfit_sect, "visual"))
     {
-        sect = "actor";
-        model = pSettings->r_string("actor", "visual");
+        sect = m_last_outfit_sect;
+        m_last_model = pSettings->r_string(m_last_outfit_sect, "visual");
+        model = m_last_model;
         return true;
     }
 
@@ -125,7 +135,7 @@ bool player_legs_controller::ensure_model(const shared_str& sect, const shared_s
 
 // clean up later
 float legs_spine_offset_y = 0.1f;
-void player_legs_controller::copy_bones_from_actor(CActor* actor)
+void player_legs_controller::copy_bones_from_actor(CActor* actor, bool isShadowPass)
 {
     if (!actor || !m_model)
         return;
@@ -134,10 +144,12 @@ void player_legs_controller::copy_bones_from_actor(CActor* actor)
     if (!actor_K)
         return;
 
-    actor_K->CalculateBones(TRUE);
-
-    m_model->CalculateBones_Invalidate();
-    m_model->CalculateBones(TRUE);
+    if (!isShadowPass)
+    {
+        actor_K->CalculateBones(TRUE);
+        m_model->CalculateBones_Invalidate();
+        m_model->CalculateBones(TRUE);
+    }
 
     u16 legs_root = m_model->LL_GetBoneRoot();
     CBoneInstance& root_bi = m_model->LL_GetBoneInstance(legs_root);
@@ -166,29 +178,35 @@ void player_legs_controller::copy_bones_from_actor(CActor* actor)
             }
         }
     }
-    
-    if (auto BoneID = m_model->LL_BoneID("bip01_spine"); BoneID != BI_NONE)
-    {
-        auto& BoneInstance = m_model->LL_GetData(BoneID);
-        auto& transform = m_model->LL_GetTransform(BoneInstance.GetParentID());
-        transform.c.y += legs_spine_offset_y;
-        m_model->Bone_Calculate(&BoneInstance, &transform);
-    }
 
-    static LPCSTR bonesToHide[] = {"bip01_neck", "bip01_l_upperarm", "bip01_r_upperarm" };
-    for (const auto& bone : bonesToHide)                                                 
-    {                                                                                    
-        u16 bone_id = m_model->LL_BoneID(bone);
-        if (bone_id != BI_NONE)
+    if (!isShadowPass)
+    {
+        if (auto BoneID = m_model->LL_BoneID("bip01_spine"); BoneID != BI_NONE)
         {
-            m_model->LL_SetBoneVisible(bone_id, false, true);
+            auto& BoneInstance = m_model->LL_GetData(BoneID);
+            auto& transform = m_model->LL_GetTransform(BoneInstance.GetParentID());
+            transform.c.y += legs_spine_offset_y;
+            m_model->Bone_Calculate(&BoneInstance, &transform);
+        }
+
+        static LPCSTR bonesToHide[] = { "bip01_neck", "bip01_l_upperarm", "bip01_r_upperarm" };
+        for (const auto& bone : bonesToHide)
+        {
+            u16 bone_id = m_model->LL_BoneID(bone);
+            if (bone_id != BI_NONE)
+            {
+                m_model->LL_SetBoneVisible(bone_id, false, true);
+            }
         }
     }
+    
 }
 
-float legs_fwd_offset = -0.6f;
+float legs_fwd_offset = -0.55f;
+BOOL legs_attach_to_camera = TRUE;
 extern int showActorBody;
-void player_legs_controller::update(CActor* actor)
+extern xr_unordered_set<CDemoRecord*> pDemoRecords;
+void player_legs_controller::update(CActor* actor, bool isShadowPass)
 {
     actor->XFORMShadow.set(actor->XFORM());
 
@@ -215,12 +233,13 @@ void player_legs_controller::update(CActor* actor)
     if (!ensure_model(sect, model))
         return;
 
-    copy_bones_from_actor(actor);
+    copy_bones_from_actor(actor, isShadowPass);
 
     m_legs_transform.set(actor->XFORM());
+    if (legs_attach_to_camera && pDemoRecords.empty())
+        m_legs_transform.c.set(Device.vCameraPosition.x, m_legs_transform.c.y, Device.vCameraPosition.z);       
 
-    Fvector fwd;
-    fwd.set(m_legs_transform.k);
+    Fvector fwd = m_legs_transform.k;
     fwd.y = 0.f;
     fwd.normalize_safe();
 
@@ -231,10 +250,9 @@ void player_legs_controller::update(CActor* actor)
     actor->XFORMShadow.translate_over(m_legs_transform.c);
 }
 
-
 void player_legs_controller::render()
 {
-    if (!g_legs_enabled || showActorBody != 0 || !m_model)
+    if (!m_model)
         return;
 
     CActor* actor = Actor();
@@ -251,19 +269,4 @@ void player_legs_controller::render()
 
     ::Render->set_Transform(&m_legs_transform);
     ::Render->add_Visual(visual);
-}
-
-void player_hud::update_legs(const Fmatrix& cam_trans)
-{
-    m_legs_controller.update(g_actor);
-}
-
-void player_hud::render_legs()
-{
-    m_legs_controller.render();
-}
-
-void player_hud::delete_legs_model()
-{
-    m_legs_controller.destroy();
 }
