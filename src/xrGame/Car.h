@@ -83,7 +83,6 @@ private:
 		ascLast = 1 << cAsCallsnum
 	};
 
-    
 	void ASCUpdate();
 	void ASCUpdate(EAsyncCalls c);
 	void AscCall(EAsyncCalls c);
@@ -414,12 +413,6 @@ public:
 		u32 engine_start_delay; //snd_engine starts after engine_start_delay ms by snd_engine_start
 		u32 time_state_start;
 		CCar* pcar;
-
-#ifdef CAR_NEW
-        bool enhanced;
-        ref_sound snd_engine_run_0;
-        ref_sound snd_engine_run_1;
-#endif
 	} * m_car_sound;
 
 private:
