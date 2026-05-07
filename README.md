@@ -45,10 +45,8 @@ Future MT versions will include LuaJIT 2.1 64 bit version, it will be incompatib
 Known issues with MT version
   * Due to aggressive culling some spots on the map might bug out and don't render properly. For example a place behind basement entrance in Rookie Village
   * Increased possibility to have a crash on loading the whole game or a savefile
-  * Longer pause on escaping to main menu or saving the game
   * Trees might have minor flickering, especially with mods that alter weather parameters via scripts
   * Occassional visual bugs like seldom flickering lights, model animations
-  * Inconsistencies with some Lua mods like Interaction Dot Marks that might result in buggy behaviour
   * DX8, 9 and 10 versions are largely untested, they do load and render correctly on the first glance
   * Some modpacks might crash on load, tested with vanilla and GAMMA only and they do work
 
@@ -237,12 +235,146 @@ How to compile exes:
 13. A short video demonstration of the entire process: https://youtu.be/MmZwyM2QO38
 
 ## Changelog
-**2026.04.02 (Prerelease)**
+
+**2026.05.05**
+* Main and MT:
+  * More meaningful error messages in `CDamageManager::load_section` and `CWeaponMagazined::LoadScopeKoeffs`
+  * `level.set_cam_custom_position_direction` don't apply FPCam smoothing if custom smoothing is 0
+  * Disable legs rendering when `level.set_cam_custom_position_direction` is applied
+  * Auto-fire after reload, use `Level().IR_OnKeyboardPress` instead of Actor's input receiver, fix https://github.com/themrdemonized/xray-monolith/issues/521
+  * Disable caching in `utils_item.script`, fixes stale data issue
+  * `luabind::detail::class_rep::function_dispatcher` has own try catch block that will reroute errors to BusyHandsDebug, potentially covering more script issues
+  * Weapon overheat smoke script refactor:
+    * Properly uses hud geometry
+    * Uses `stop_deffered` instead of `stop` to properly stop smoke particles
+    * Individual smoke data per weapon, particles will work when weapon is dropped
+    * Framerate independent buildup and cooldown
+    * Possibility to work on npc weapons, currently disabled, doesn't look good enough
+    * Baseline tuning is to start overheating after 80-85 rounds of non stop firing of PKM
+  * Persistent weather implementation with using weather interpolation from engine
+    * Storing last weather file, current weather file and interpolation between them from engine
+    * On load first force apply previous weather, then apply new weather but not forced, then apply interpolation
+    * Can be toggled in `Video / Weather` options
+  * New engine exports for manipulating weather
+  * Safer `pda.calculate_rankings` patch
+  * leyten: clamp actor camera collision box at high FOV to fix ultrawide doorway snag, `g_clamp_actor_camera_collision 1` to enable ultrawide fix (https://github.com/themrdemonized/xray-monolith/pull/520)
+  * erepb: route assign_smart via simulation_board to fix SIMBOARD.smarts orphans (https://github.com/themrdemonized/xray-monolith/pull/522)
+  * SaloEater: motion exists engine call (https://github.com/themrdemonized/xray-monolith/pull/524)
+
+* MT:
+  * Move `process_sound_callbacks` Lua callbacks for NPCs to `shedule_update`, with `mt_scheduler 1` they will be on separate thread, slightly increasing performance when there are many NPCs
+  * `CSector::traverse` optimization to address fps drop when many portals are in frustum like in Pripyat Outskirts
+  * `mt_ui` cvar to move `pUIGame->OnFrame` on separate thread, default disabled
+  * `CPHMovementControl::Calculate` safety checks
+  * `CParticlesObject::renderable_Render` nullptr check
+  * `ISpatial::OwnerSectorPoint` sligthly safer
+  * `CMapLocation::UpdateSpot` `m_owner_se_object` nullptr check
+  * `CAI_Stalker::process_enemies()` `memory().visual().objectsPtr()` nullptr check
+  * Removed leftover code from `ModelPool`
+  * Safer procedure to deferred deletion of models in `ModelsToDeleteDefer`
+  * Possible fix of `Physics.cpp (245): CollideIntoGroup` crash
+  * Unregister particles from spatial database when `PSI_Destroy` is called
+  * Replace `_min` `_max` with `std::min` and `std::max`
+  * Rain:
+    * Fix items pool not reducing, leading to broken density reducing on transitions from rain weather
+    * `r__rain_exp` and `r__rain_k` commands to control rain buildup and max density
+
+**2026.04.26**
+
+* Main and MT:
+  * BusyHandsDebug: Remove where it is unnecessary
+  * `CWeaponMagazined::LoadScopeKoeffs` print error message on invalid weapon config
+  * maks7231: fix double `occluder_volume` apply by removing it from `level_sounds`, resulting in very quiet environment sounds in some places
+  * GhenTuong: Add callback.net_spawn_after (https://github.com/themrdemonized/xray-monolith/pull/516)
+  * erepb: Monitor selection (https://github.com/themrdemonized/xray-monolith/pull/517, https://github.com/themrdemonized/xray-monolith/pull/518)
+  * Verdatim25: Fix for motion marked LMG reloads, unjams and added capability for motion_marked tri_state_reload weapons (https://github.com/themrdemonized/xray-monolith/pull/519)
+
+* MT:
+  * Option to disable static and dynamic wallmarks via `r_wallmarks_static` and `r_wallmarks_dynamic` cvars
+  * Fixed potential crash in `CObjectList::Unload`
+  * Safer `stat_memory_async`, reverted to `stat_memory` call in critical places
+
+**2026.04.21**
+
+* Main and MT:
+  * `player_hud::StopScriptAnim()` hide warnings under `print_bone_warnings` flag
+  * Optimization of headlights updates (CTorch):
+    * Optimize by limiting `set_position` and `set_rotation` calls by custom epsilon
+    * Further objects have bigger position epsilon but same rotation epsilon
+    * `r__optimize_torch` cvar to toggle optimization
+  * Controller attack fixes:
+    * No `actor_psy_immunity` dependency, looks correct in Anomaly
+    * Camera zooms on `left_eye/right_eye/bip01_head` bone if model has it, fallback to object position
+    * Better camera behaviour when actor is too close to controller
+  * Fix possible crash in `randI` when getting random value with `min == max` in range
+  * Do not set thread description, fix https://github.com/themrdemonized/xray-monolith/issues/511
+  * Legs: Disable shadow for DX8 and DX9
+  * `r__actor_shadow_in_demo_record` cvar to disable actor shadow when `demo_record 1`
+  * `r2_sun_lumscale_color` cvar to tune sun color
+  * Disable `alife_object that uses server_objects_registry, less calls to engine unless necessary` since I have paranoia and cant check if it doesn't lead to errors
+  * erepb: 
+    * Fix online transition squad teleport (https://github.com/themrdemonized/xray-monolith/pull/512)
+    * Fix actualize fails (https://github.com/themrdemonized/xray-monolith/pull/513)
+
+* MT:
+  * Cleanup `destroy_queue` if for some reason it is not empty on `CObjectList` destruction
+  * Split `PreRenderThread` on pre and post transforms. Rain and Particles updates start sooner in the game loop
+  * Possible fix for crashes related to UI in `CDialogHolder`
+  * Restore shadows from headlamp and flashlight, fix https://github.com/themrdemonized/xray-monolith/issues/510
+  * Legs: fix flickering headlamp position on DX9
+  * `CAI_Stalker::net_Relcase` invalidate `m_best_item_to_kill` if matches
+  * `stat_memory_async` command to get memory stats on separate thread
+  * Replaced all `stat_memory` calls to `stat_memory_async` to decrease freezes and loading times
+  * Optimization of discarding objects to render logic based on SSA
+    * `CalcSSA` uses squared radius for static objects, smaller objects will be culled more aggressively
+    * Gradient culling of static objects and grass based on SSA and position hash:
+      * Smaller objects that fail the SSA test will still render depending on how much smaller they are than the discard limit.
+      * In effect it turns "rendering radius" hard cutoff into smaller density of objects the further they are, makes pop-in less noticeable
+    * `r__ssa_discard` cvar to tune SSA discard, increased default SSA discard 3.5 -> 7
+    * `r_ssa_discard_exp` cvar to finetune discard logic of statics. less < 1 will increase density of closer objects, > 1 will reduce, default is 0.5
+    * `r_ssa_discard_fade_k` cvar to finetune discard logic of statics for far objects, more value means stricter discard, default is 4
+    * HUD geometry will skip SSA check
+  * Remade `r_wallmarks_ssa_k` cvar with different range of values, default is 0.5
+
+**2026.04.13**
+
+* Main and MT:
+  * Print warning and set m_ammoType to 0 if `m_ammoTypes[m_ammoType]` is invalid
+  * Fix potential "heavy busy hands" on game load due to `m_attached_items` invalid indexing
+  * CMissile, fix https://github.com/themrdemonized/xray-monolith/issues/507:
+    * Cache progress bar xml
+    * Preemptively create progress bar object when pressing kWPN_ZOOM so it won't be created during render phase where it might interfere with Lua GC
+  * DLTX:
+    * `xr_vector<Sect>` for data storage instead of `xr_vector<Sect*>`,
+    * Cache actually stores prepared data, faster cache retrieval and reduced size of cache slightly
+  * QoL: on the end of a reload animation, if weapon fire button is held, the weapon will start shooting automatically
+  * GhenTuong: CRayPick: implement get_normal (https://github.com/themrdemonized/xray-monolith/pull/508)
+
+* MT:
+  * Disable costly `stat_memory` calls on accessing main menu and saving, fixes big freezes
+  * Wallmark creation optimization (https://github.com/ixray-team/ixray-1.6-stcop/commit/c731e386173f284502e71c3201a9c1f68b22c1c5)
+  * Revert changes to task manager that can cause crashes
+  * Fix possible crashes when using https://github.com/DoktorDauerfeuer/Anomaly-hf-Gadgets-GAMMA-For-Hideout-Furniture
+  * Try to fix potential crash in `CEntityAlive::get_new_local_point_on_mesh`
+  * Try to fix agent_manager_properties.cpp (48): CAgentManagerPropertyEvaluatorEnemy::evaluate null dereference
+
+**2026.04.06**
+
+* MT:
+  * Wallmarks
+    * Restore `! Failed to render dynamic wallmark` try-catch block, fixes crashes with certain script mods
+    * Disable `g_wallmark_range_static` and `g_wallmark_range_skeleton` commands, they are unused
+  * Alternative solution to fix of complete lockup of engine due to calculating bones in separate thread, fixes `HudItem.cpp (551): CHudItem::UpdateCL` crash
+  * `CVisualMemoryManager::visible_object` nullptr check in `m_objects`
+
+**2026.04.05 (Prerelease)**
 
 * Main and MT:
   * Legs: Fix rendering attachment shadows with multiple light sources
   * BusyHandsDebug: Do not engage if `db.actor` is nil, doesn't matter at this point
   * DXML: Safer Lua callback, fixes possible crashes such as when throwing grenades with right mouse button
+  * `duplicate_story_id_crash` console command to disable crash on `"Specified story object is already in the Story registry!"` error
+  * GhenTuong: CWeaponStatMgun: Introduce field "on_range_fov" to change gunner visibility range. Export lua game object functions (https://github.com/themrdemonized/xray-monolith/pull/498)
 
 * MT:
   * Revert "Wallmarks: Increase MAX_TRIS from 16384 to 32768"
@@ -252,7 +384,15 @@ How to compile exes:
     * `net_RelCase` for bullet manager
     * `empty()` checks for restrictions
     * Possibly fixes random crashes when an object is destroyed while mt scheduler is processing objects
-  * Wallmarks: static pool uses `xr_deque`, possibly fixes issues with Blood Pools mod
+  * Wallmarks refactoring
+    * Static wallmarks are grouped by sectors. Only visible sectors will render wallmarks
+    * Update wallmarks lifetime before rendering, simplify rendering loop
+    * Removal of skeleton wallmarks on object's `net_destroy`, fixes floating wallmarks in the air or stretched wallmarks artifacts
+    * Remove distance check when adding wallmarks to render queue, fixes absent wallmarks on objects that were killed more than 50 meters away
+    * `r_wallmarks_ssa_k` console command to limit rendering distance of wallmarks, default 40. More value means LESS rendering distance
+  * Fixed excessive smearing when using SSS with motion vectors
+  * Update global Feel::Vision data when an object changes it visuals, possibly fixes crashes related to `get_new_local_point_on_mesh`
+  * Possible fix of complete lockup of engine due to calculating bones in separate thread
 
 **2026.03.29**
 
@@ -1968,3 +2108,4 @@ override = true
 
 * Exported distance_to_xz_sqr() function of Fvector
 * Redesigned duplicate section error, it will additionally print what file adds the section in the first place in addition to the file that has the duplicate
+
