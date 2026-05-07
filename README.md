@@ -235,6 +235,65 @@ How to compile exes:
 13. A short video demonstration of the entire process: https://youtu.be/MmZwyM2QO38
 
 ## Changelog
+
+**2026.05.05**
+* Main and MT:
+  * More meaningful error messages in `CDamageManager::load_section` and `CWeaponMagazined::LoadScopeKoeffs`
+  * `level.set_cam_custom_position_direction` don't apply FPCam smoothing if custom smoothing is 0
+  * Disable legs rendering when `level.set_cam_custom_position_direction` is applied
+  * Auto-fire after reload, use `Level().IR_OnKeyboardPress` instead of Actor's input receiver, fix https://github.com/themrdemonized/xray-monolith/issues/521
+  * Disable caching in `utils_item.script`, fixes stale data issue
+  * `luabind::detail::class_rep::function_dispatcher` has own try catch block that will reroute errors to BusyHandsDebug, potentially covering more script issues
+  * Weapon overheat smoke script refactor:
+    * Properly uses hud geometry
+    * Uses `stop_deffered` instead of `stop` to properly stop smoke particles
+    * Individual smoke data per weapon, particles will work when weapon is dropped
+    * Framerate independent buildup and cooldown
+    * Possibility to work on npc weapons, currently disabled, doesn't look good enough
+    * Baseline tuning is to start overheating after 80-85 rounds of non stop firing of PKM
+  * Persistent weather implementation with using weather interpolation from engine
+    * Storing last weather file, current weather file and interpolation between them from engine
+    * On load first force apply previous weather, then apply new weather but not forced, then apply interpolation
+    * Can be toggled in `Video / Weather` options
+  * New engine exports for manipulating weather
+  * Safer `pda.calculate_rankings` patch
+  * leyten: clamp actor camera collision box at high FOV to fix ultrawide doorway snag, `g_clamp_actor_camera_collision 1` to enable ultrawide fix (https://github.com/themrdemonized/xray-monolith/pull/520)
+  * erepb: route assign_smart via simulation_board to fix SIMBOARD.smarts orphans (https://github.com/themrdemonized/xray-monolith/pull/522)
+  * SaloEater: motion exists engine call (https://github.com/themrdemonized/xray-monolith/pull/524)
+
+* MT:
+  * Move `process_sound_callbacks` Lua callbacks for NPCs to `shedule_update`, with `mt_scheduler 1` they will be on separate thread, slightly increasing performance when there are many NPCs
+  * `CSector::traverse` optimization to address fps drop when many portals are in frustum like in Pripyat Outskirts
+  * `mt_ui` cvar to move `pUIGame->OnFrame` on separate thread, default disabled
+  * `CPHMovementControl::Calculate` safety checks
+  * `CParticlesObject::renderable_Render` nullptr check
+  * `ISpatial::OwnerSectorPoint` sligthly safer
+  * `CMapLocation::UpdateSpot` `m_owner_se_object` nullptr check
+  * `CAI_Stalker::process_enemies()` `memory().visual().objectsPtr()` nullptr check
+  * Removed leftover code from `ModelPool`
+  * Safer procedure to deferred deletion of models in `ModelsToDeleteDefer`
+  * Possible fix of `Physics.cpp (245): CollideIntoGroup` crash
+  * Unregister particles from spatial database when `PSI_Destroy` is called
+  * Replace `_min` `_max` with `std::min` and `std::max`
+  * Rain:
+    * Fix items pool not reducing, leading to broken density reducing on transitions from rain weather
+    * `r__rain_exp` and `r__rain_k` commands to control rain buildup and max density
+
+**2026.04.26**
+
+* Main and MT:
+  * BusyHandsDebug: Remove where it is unnecessary
+  * `CWeaponMagazined::LoadScopeKoeffs` print error message on invalid weapon config
+  * maks7231: fix double `occluder_volume` apply by removing it from `level_sounds`, resulting in very quiet environment sounds in some places
+  * GhenTuong: Add callback.net_spawn_after (https://github.com/themrdemonized/xray-monolith/pull/516)
+  * erepb: Monitor selection (https://github.com/themrdemonized/xray-monolith/pull/517, https://github.com/themrdemonized/xray-monolith/pull/518)
+  * Verdatim25: Fix for motion marked LMG reloads, unjams and added capability for motion_marked tri_state_reload weapons (https://github.com/themrdemonized/xray-monolith/pull/519)
+
+* MT:
+  * Option to disable static and dynamic wallmarks via `r_wallmarks_static` and `r_wallmarks_dynamic` cvars
+  * Fixed potential crash in `CObjectList::Unload`
+  * Safer `stat_memory_async`, reverted to `stat_memory` call in critical places
+
 **2026.04.21**
 
 * Main and MT:
