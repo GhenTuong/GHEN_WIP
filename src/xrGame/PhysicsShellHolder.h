@@ -6,8 +6,12 @@
 #include "../xrEngine/iobjectphysicscollision.h"
 #include "../xrphysics/iphysicsshellholder.h"
 
-#if 1
+#ifdef PHYSICSSHELLHOLDER
+#include "script_export_space.h"
+#include "script_callback_ex.h"
 #include "../xrphysics/ExtendedGeom.h"
+
+class CCustomMonster;
 #endif
 
 class CPHDestroyable;
@@ -18,10 +22,6 @@ class CPHSkeleton;
 class CCharacterPhysicsSupport;
 class ICollisionDamageInfo;
 class CIKLimbsController;
-
-#if 1
-class CCustomMonster;
-#endif
 
 class CPhysicsShellHolder : public CGameObject,
                             public CParticlesPlayer,
@@ -47,7 +47,6 @@ public:
 public:
 
 	typedef CGameObject inherited;
-
 
 	CPhysicsShell* m_pPhysicsShell;
 
@@ -159,7 +158,7 @@ private: //IPhysicsShellHolder
 	virtual	std::string				_BCL					dump								(EDumpType type) const  ;
 #endif
 
-#if 1
+#ifdef PHYSICSSHELLHOLDER
 public:
 	enum ICFlags
 	{
@@ -168,10 +167,19 @@ public:
 		ICnpc = (1 << 2),
 	};
 	u32 m_ignore_collision_flag;
+    Flags64 m_contact_collision_bone;
+    bool m_script_contact_collision_enable;
+	CScriptCallbackEx<bool> m_script_contact_collision_callback;
 
-public:
-	static void IgnoreCollisionCallback(bool &do_colide, bool bo1, dContact &c, SGameMtl *material_1, SGameMtl *material_2);
-	void active_ignore_collision();
+    bool get_contact_collision_bone(u16 bid);
+    void set_contact_collision_bone(u16 bid, bool status, bool recursive);
+    void activate_contact_collision_callback(bool status);
+    void set_script_contact_collision_callback();
+    void set_script_contact_collision_callback(const ::luabind::functor<bool>& func);
+    void set_script_contact_collision_callback(const ::luabind::functor<bool>& func, const ::luabind::object& bind);
+    static void ObjectContactCollisionCallback(bool& do_colide, bool bo1, dContact& c, SGameMtl* material_1, SGameMtl* material_2);
+
+    DECLARE_SCRIPT_REGISTER_FUNCTION
 #endif
 };
 

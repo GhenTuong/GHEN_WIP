@@ -32,4 +32,21 @@ public:
 protected:
 	void Destroy();
 private:
+
+#ifdef CPHYSICOBJECT
+private:
+    bool m_script_before_hit_enable;
+    CScriptCallbackEx<bool> m_script_before_hit_callback;
+
+public:
+    IC float GetHealth() const { return m_fHealth; }
+    IC void SetHealth(const float value) { m_fHealth = value; }
+    IC bool Destroyable() { return CPHDestroyable::Destroyable(); }
+    IC bool Destroyed() { return CPHDestroyable::Destroyed(); }
+    IC bool CanDestroy() { return CPHDestroyable::CanDestroy(); }
+
+    void set_script_before_hit_callback();
+    void set_script_before_hit_callback(const ::luabind::functor<bool>& func);
+    void set_script_before_hit_callback(const ::luabind::functor<bool>& func, const ::luabind::object& bind);
+#endif
 };

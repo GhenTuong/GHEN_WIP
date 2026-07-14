@@ -142,7 +142,7 @@ void CCarDrone::Load(LPCSTR section)
     }
 
     m_rotor_force = READ_IF_EXISTS(ini, r_float, cfg, "rotor_force", 0.0F);
-    m_rotor_speed = READ_IF_EXISTS(ini, r_float, cfg, "rotor_speed", 0.0F);
+    m_rotor_speed = READ_IF_EXISTS(ini, r_float, cfg, "rotor_speed", 0.0F) * PI_MUL_2 / 60.0F;
 }
 
 bool CCarDrone::attach_Actor(CGameObject* actor)
@@ -286,7 +286,7 @@ void CCarDrone::RotorUpdate()
             if (I.force != true)
             {
                 I.force = true;
-                I.J->SetForceAndVelocity(m_rotor_force, m_rotor_speed * PI_MUL_2 * (I.clock ? 1 : -1), 1);
+                I.J->SetForceAndVelocity(m_rotor_force, m_rotor_speed * (I.clock ? 1 : -1), 1);
             }
         }
     }

@@ -162,10 +162,13 @@ BOOL CProjector::net_Spawn(CSE_Abstract* DC)
 	processing_activate();
 
 	PPhysicsShell()->Enable();
+
+#ifdef PHYSICSSHELLHOLDER
 	if (PPhysicsShell() && m_ignore_collision_flag)
 	{
-		CPhysicsShellHolder::active_ignore_collision();
+		CPhysicsShellHolder::activate_contact_collision_callback(true);
 	}
+#endif
 
 	{
 		/* Hack. net_spawn() of CScriptBinderObjectWrapper runs first. This allows overriding configs read in engine net_Spawn(). */

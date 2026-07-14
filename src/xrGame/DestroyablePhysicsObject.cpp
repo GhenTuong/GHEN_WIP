@@ -13,6 +13,7 @@
 #include "script_callback_ex.h"
 #include "script_game_object.h"
 #include "../xrphysics/PhysicsShell.h"
+#include "script_hit.h"
 #ifdef DEBUG
 #include "../xrphysics/IPHWorld.h"
 //#include "PHWorld.h"
@@ -21,10 +22,19 @@
 CDestroyablePhysicsObject::CDestroyablePhysicsObject()
 {
 	m_fHealth = 1.f;
+
+#ifdef CPHYSICOBJECT
+    m_script_before_hit_enable = false;
+    m_script_before_hit_callback.clear();
+#endif
 }
 
 CDestroyablePhysicsObject::~CDestroyablePhysicsObject()
 {
+#ifdef CPHYSICOBJECT
+    m_script_before_hit_enable = false;
+    m_script_before_hit_callback.clear();
+#endif
 }
 
 void CDestroyablePhysicsObject::OnChangeVisual()
@@ -80,6 +90,24 @@ BOOL CDestroyablePhysicsObject::net_Spawn(CSE_Abstract* DC)
 void CDestroyablePhysicsObject::Hit(SHit* pHDS)
 {
 	SHit HDS = *pHDS;
+	HDS.power = CHitImmunity::AffectHit(HDS.power, HDS.hit_type);
+	float hit_scale = 1.f, wound_scale = 1.f;
+	CDamageManager::HitScale(HDS.bone(), hit_scale, wound_scale);
+	HDS.power *= hit_scale;
+	//	inherited::Hit(P,dir,who,element,p_in_object_space,impulse,hit_type);
+
+#ifdef CPHYSICOBJECT
+    if (m_script_before_hit_enable)
+    {
+        CScriptHit tLuaHit(&HDS);
+        if (!m_script_before_hit_callback(lua_game_object(), &tLuaHit, HDS.boneID))
+        {
+            return;
+        }
+        HDS.ApplyScriptHit(&tLuaHit);
+    }
+#endif
+
 	callback(GameObject::eHit)(
 		lua_game_object(),
 		HDS.power,
@@ -87,11 +115,7 @@ void CDestroyablePhysicsObject::Hit(SHit* pHDS)
 		smart_cast<const CGameObject*>(HDS.who)->lua_game_object(),
 		HDS.bone()
 	);
-	HDS.power = CHitImmunity::AffectHit(HDS.power, HDS.hit_type);
-	float hit_scale = 1.f, wound_scale = 1.f;
-	CDamageManager::HitScale(HDS.bone(), hit_scale, wound_scale);
-	HDS.power *= hit_scale;
-	//	inherited::Hit(P,dir,who,element,p_in_object_space,impulse,hit_type);
+
 	inherited::Hit(&HDS);
 	m_fHealth -= HDS.power;
 	if (m_fHealth <= 0.f)
@@ -172,3 +196,23 @@ DLL_Pure* CDestroyablePhysicsObject::_construct()
 	CDamageManager::_construct();
 	return inherited::_construct();
 }
+
+#ifdef CPHYSICOBJECT
+void CDestroyablePhysicsObject::set_script_before_hit_callback()
+{
+    m_script_before_hit_enable = false;
+    m_script_before_hit_callback.clear();
+}
+
+void CDestroyablePhysicsObject::set_script_before_hit_callback(const::luabind::functor<bool>& func)
+{
+    m_script_before_hit_enable = true;
+    m_script_before_hit_callback.set(func);
+}
+
+void CDestroyablePhysicsObject::set_script_before_hit_callback(const::luabind::functor<bool>& func, const::luabind::object& bind)
+{
+    m_script_before_hit_enable = true;
+    m_script_before_hit_callback.set(func, bind);
+}
+#endif

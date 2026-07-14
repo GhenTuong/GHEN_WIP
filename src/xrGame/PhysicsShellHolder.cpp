@@ -10,6 +10,7 @@
 #include "PHScriptCall.h"
 #include "CustomRocket.h"
 #include "Grenade.h"
+#include "script_game_object.h"
 
 //#include "phactivationshape.h"
 #include "../xrphysics/iphworld.h"
@@ -26,6 +27,11 @@
 CPhysicsShellHolder::CPhysicsShellHolder()
 {
 	init();
+
+#ifdef PHYSICSSHELLHOLDER
+    m_script_contact_collision_enable = false;
+    m_script_contact_collision_callback.clear();
+#endif
 }
 
 CPhysicsShellHolder::~CPhysicsShellHolder()
@@ -35,6 +41,14 @@ CPhysicsShellHolder::~CPhysicsShellHolder()
 	//R_ASSERT( !m_pPhysicsShell );
 	//#endif
 	destroy_physics_shell(m_pPhysicsShell);
+
+#ifdef PHYSICSSHELLHOLDER
+    m_ignore_collision_flag = 0;
+    m_contact_collision_bone.one();
+
+    m_script_contact_collision_enable = false;
+    m_script_contact_collision_callback.clear();
+#endif
 }
 
 const IObjectPhysicsCollision* CPhysicsShellHolder::physics_collision()
@@ -122,7 +136,7 @@ BOOL CPhysicsShellHolder::net_Spawn(CSE_Abstract* DC)
 		st_enable_state = (u8)stNotDefitnite;
 	}
 
-#if 1
+#ifdef PHYSICSSHELLHOLDER
 	m_ignore_collision_flag = 0;
 	if (pSettings->line_exist(cNameSect_str(), "ignore_collision"))
 	{
@@ -140,6 +154,8 @@ BOOL CPhysicsShellHolder::net_Spawn(CSE_Abstract* DC)
 			m_ignore_collision_flag = m_ignore_collision_flag | ICnpc;
 		}
 	}
+
+    m_contact_collision_bone.one();
 #endif
 
 	return ret;
@@ -176,10 +192,6 @@ void CPhysicsShellHolder::init()
 {
 	m_pPhysicsShell = NULL;
 	b_sheduled = false;
-
-#if 1
-	m_ignore_collision_flag = 0;
-#endif
 }
 
 bool CPhysicsShellHolder::has_shell_collision_place(const CPhysicsShellHolder* obj) const
@@ -672,67 +684,129 @@ std::string	CPhysicsShellHolder::dump(EDumpType type) const
 }
 #endif
 
-#if 1
-void CPhysicsShellHolder::IgnoreCollisionCallback(bool &do_colide, bool bo1, dContact &c, SGameMtl *material_1, SGameMtl *material_2)
+#ifdef PHYSICSSHELLHOLDER
+bool CPhysicsShellHolder::get_contact_collision_bone(u16 bid)
 {
-	if (do_colide == false)
-	{
-		return;
-	}
-
-	dxGeomUserData *gd1 = bo1 ? PHRetrieveGeomUserData(c.geom.g1) : PHRetrieveGeomUserData(c.geom.g2);
-	dxGeomUserData *gd2 = bo1 ? PHRetrieveGeomUserData(c.geom.g2) : PHRetrieveGeomUserData(c.geom.g1);
-	CGameObject *obj = (gd1) ? smart_cast<CGameObject *>(gd1->ph_ref_object) : NULL;
-	CGameObject *who = (gd2) ? smart_cast<CGameObject *>(gd2->ph_ref_object) : NULL;
-
-	if (obj == NULL)
-	{
-		return;
-	}
-
-	CPhysicsShellHolder *a = (obj) ? smart_cast<CPhysicsShellHolder *>(obj) : NULL;
-	if (a == NULL)
-	{
-		return;
-	}
-
-	if (who == NULL)
-	{
-		if (a->m_ignore_collision_flag & CPhysicsShellHolder::ICmap)
-		{
-			do_colide = false;
-		}
-		return;
-	}
-
-	CPhysicsShellHolder *b = smart_cast<CPhysicsShellHolder *>(who);
-	if (b)
-	{
-		if (who->cast_actor() || who->cast_stalker() || who->cast_base_monster())
-		{
-			if (a->m_ignore_collision_flag & CPhysicsShellHolder::ICnpc)
-			{
-				do_colide = false;
-				return;
-			}
-		}
-		else
-		{
-			if (a->m_ignore_collision_flag & CPhysicsShellHolder::ICobj)
-			{
-				if (b->m_ignore_collision_flag & CPhysicsShellHolder::ICobj)
-				{
-					do_colide = false;
-					return;
-				}
-			}
-		}
-	}
+    return m_contact_collision_bone.is(u64(1) << bid);
 }
 
-void CPhysicsShellHolder::active_ignore_collision()
+void CPhysicsShellHolder::set_contact_collision_bone(u16 bid, bool status, bool recursive)
 {
-	R_ASSERT(PPhysicsShell());
-	PPhysicsShell()->add_ObjectContactCallback(IgnoreCollisionCallback);
+    IKinematics* K = Visual()->dcast_PKinematics();
+    if (bid >= K->LL_BoneCount())
+        return;
+
+    m_contact_collision_bone.set(u64(1) << bid, status ? TRUE : FALSE);
+    if (recursive)
+    {
+        const IBoneData& B = K->GetBoneData(bid);
+        u16 num = B.GetNumChildren();
+        for (u16 idx = 0; idx < num; idx++)
+        {
+            m_contact_collision_bone.set(u64(1) << B.GetChild(idx).GetSelfID(), status ? TRUE : FALSE);
+        }
+    }
+}
+
+void CPhysicsShellHolder::activate_contact_collision_callback(bool status)
+{
+    R_ASSERT(PPhysicsShell());
+    PPhysicsShell()->remove_ObjectContactCallback(ObjectContactCollisionCallback);
+    if (status)
+    {
+        PPhysicsShell()->add_ObjectContactCallback(ObjectContactCollisionCallback);
+    }
+}
+
+void CPhysicsShellHolder::set_script_contact_collision_callback()
+{
+    m_script_contact_collision_enable = false;
+    m_script_contact_collision_callback.clear();
+}
+
+void CPhysicsShellHolder::set_script_contact_collision_callback(const::luabind::functor<bool>& func)
+{
+    m_script_contact_collision_enable = true;
+    m_script_contact_collision_callback.set(func);
+}
+
+void CPhysicsShellHolder::set_script_contact_collision_callback(const ::luabind::functor<bool>& func, const ::luabind::object& bind)
+{
+    m_script_contact_collision_enable = true;
+    m_script_contact_collision_callback.set(func, bind);
+}
+
+void CPhysicsShellHolder::ObjectContactCollisionCallback(bool& do_colide, bool bo1, dContact& c, SGameMtl* material_1, SGameMtl* material_2)
+{
+    dxGeomUserData* gd1 = bo1 ? PHRetrieveGeomUserData(c.geom.g1) : PHRetrieveGeomUserData(c.geom.g2);
+    dxGeomUserData* gd2 = bo1 ? PHRetrieveGeomUserData(c.geom.g2) : PHRetrieveGeomUserData(c.geom.g1);
+    CGameObject* obj = (gd1) ? smart_cast<CGameObject*>(gd1->ph_ref_object) : nullptr;
+    CGameObject* who = (gd2) ? smart_cast<CGameObject*>(gd2->ph_ref_object) : nullptr;
+
+#if 0
+    /* Maybe not? obj should always exist. Otherwise, let it crash so we know there is some deep shit bugs here. */
+    if (obj == nullptr)
+        return;
+#endif
+
+    CPhysicsShellHolder* psh = obj->cast_physics_shell_holder();
+
+    if (do_colide)
+    {
+        if (who)
+        {
+            if (who->cast_actor() || who->cast_stalker() || who->cast_base_monster())
+            {
+                if (psh->m_ignore_collision_flag & CPhysicsShellHolder::ICnpc)
+                {
+                    do_colide = false;
+                }
+            }
+            else if (psh->m_ignore_collision_flag & CPhysicsShellHolder::ICobj)
+            {
+                CPhysicsShellHolder* mgr = who->cast_physics_shell_holder();
+                if (mgr && (mgr->m_ignore_collision_flag & CPhysicsShellHolder::ICobj))
+                {
+                    do_colide = false;
+                }
+            }
+        }
+        else
+        {
+            if (psh->m_ignore_collision_flag & CPhysicsShellHolder::ICmap)
+            {
+                do_colide = false;
+            }
+        }
+    }
+
+    if (do_colide && psh->get_contact_collision_bone(gd1->bone_id) == false)
+    {
+        do_colide = false;
+    }
+
+    if (do_colide && psh->m_script_contact_collision_enable)
+    {
+        if (!psh->m_script_contact_collision_callback(obj->lua_game_object(), gd1->bone_id, (who) ? who->lua_game_object() : nullptr, (gd2) ? gd2->bone_id : BI_NONE))
+        {
+            do_colide = false;
+        }
+    }
+}
+
+using namespace luabind;
+#pragma optimize("s",on)
+void CPhysicsShellHolder::script_register(lua_State* L)
+{
+    module(L)
+        [
+            class_<CPhysicsShellHolder>("CPhysicsShellHolder")
+            .def("activate_contact_collision_callback", (&CPhysicsShellHolder::activate_contact_collision_callback))
+            .def("get_contact_collision_bone", (&CPhysicsShellHolder::get_contact_collision_bone))
+            .def("set_contact_collision_bone", (&CPhysicsShellHolder::set_contact_collision_bone))
+            .def("set_script_contact_collision_callback", (void (CPhysicsShellHolder::*)())(&CPhysicsShellHolder::set_script_contact_collision_callback))
+            .def("set_script_contact_collision_callback", (void (CPhysicsShellHolder::*)(const ::luabind::functor<bool>&))(&CPhysicsShellHolder::set_script_contact_collision_callback))
+            .def("set_script_contact_collision_callback", (void (CPhysicsShellHolder::*)(const ::luabind::functor<bool>&, const ::luabind::object&))(&CPhysicsShellHolder::set_script_contact_collision_callback))
+        ];
 }
 #endif

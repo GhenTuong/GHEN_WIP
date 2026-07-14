@@ -113,6 +113,7 @@ class CDangerObject;
 class CScriptGameObject;
 class CZoneCampfire;
 class CPhysicObject;
+class CDestroyablePhysicsObject;
 class CArtefact;
 class script_attachment;
 
@@ -824,6 +825,7 @@ public:
 	CArtefact* get_artefact();
 	CZoneCampfire* get_campfire();
 	CPhysicObject* get_physics_object();
+	CDestroyablePhysicsObject* get_destroyable_physics_object();
 
 	void aim_time(CScriptGameObject* weapon, u32 time);
 	u32 aim_time(CScriptGameObject* weapon);
@@ -978,6 +980,7 @@ public:
 	_DECLARE_FUNCTION14(cast_BottleItem, CBottleItem);
 	_DECLARE_FUNCTION14(cast_Missile, CMissile);
 	_DECLARE_FUNCTION14(cast_Explosive, CExplosive);
+	_DECLARE_FUNCTION14(cast_PhysicsShellHolder, CPhysicsShellHolder);
 
 	void SetHealthEx(float hp); //AVO
 	float GetLuminocityHemi();

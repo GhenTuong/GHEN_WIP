@@ -14,8 +14,11 @@ void CExplosive::script_register(lua_State* L)
 #ifdef STATIONARYMGUN_NEW
 		.def("Initiator", (&CExplosive::Initiator))
 		.def("SetInitiator", (&CExplosive::SetInitiator))
+		.def("CurrentParentID", (&CExplosive::CurrentParentID))
+		.def("SetCurrentParentID", (&CExplosive::SetCurrentParentID))
 		.def("LoadExplosiveSection", (void (CExplosive::*)(LPCSTR)) &CExplosive::LoadExplosiveSection)
 		.def("LoadExplosiveSection", (void (CExplosive::*)(CInifile*, LPCSTR)) &CExplosive::LoadExplosiveSection)
+		.def("Explode", (&CExplosive::ExplodeScript))
 #endif
 	];
 }

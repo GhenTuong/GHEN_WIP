@@ -877,4 +877,14 @@ void CExplosive::LoadExplosiveSection(CInifile *ini, LPCSTR section)
 {
 	CExplosive::Load(ini, section);
 }
+
+void CExplosive::ExplodeScript()
+{
+    /* Export .def("explode", (&CExplosive::Explode)) is bad. This is the correct way. */
+    if (m_explosion_flags.test(flExplodEventSent))
+        return;
+    Fvector normal;
+    FindNormal(normal);
+    GenExplodeEvent(cast_game_object()->Position(), normal);
+}
 #endif

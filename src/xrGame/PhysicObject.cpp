@@ -29,7 +29,9 @@ CPhysicObject::CPhysicObject(void):
 	m_just_after_spawn(false),
 	m_activated(false)
 {
-#ifdef CPHYSICOBJECT_CHANGE
+#ifdef CPHYSICOBJECT
+    m_is_ai_obstacle = false;
+
 	m_physic_contact_callback = NULL;
 #endif
 }
@@ -95,14 +97,14 @@ if(dbg_draw_doors)
 }
 #endif
 
-#if 1
+#ifdef PHYSICSSHELLHOLDER
 	if (PPhysicsShell() && m_ignore_collision_flag)
 	{
-		CPhysicsShellHolder::active_ignore_collision();
+		CPhysicsShellHolder::activate_contact_collision_callback(true);
 	}
 #endif
 
-#ifdef CPHYSICOBJECT_CHANGE
+#ifdef CPHYSICOBJECT
 	if (pSettings->line_exist(cNameSect_str(), "on_physic_contact"))
 	{
 		R_ASSERT(PPhysicsShell());
@@ -317,7 +319,7 @@ void CPhysicObject::net_Destroy()
 	//	processing_deactivate();
 	//}
 
-#ifdef CPHYSICOBJECT_CHANGE
+#ifdef CPHYSICOBJECT
 	if (PPhysicsShell())
 	{
 		PPhysicsShell()->remove_ObjectContactCallback(PhysicContactCallback);
@@ -357,7 +359,9 @@ void CPhysicObject::Load(LPCSTR section)
 	inherited::Load(section);
 	CPHSkeleton::Load(section);
 
-#ifdef CPHYSICOBJECT_CHANGE
+#ifdef CPHYSICOBJECT
+    m_is_ai_obstacle = !!(READ_IF_EXISTS(pSettings, r_bool, cNameSect(), "is_ai_obstacle", TRUE));
+
 	m_physic_contact_callback = READ_IF_EXISTS(pSettings, r_string, cNameSect_str(), "on_physic_contact", NULL);
 	if (m_physic_contact_callback && strlen(m_physic_contact_callback))
 	{
@@ -576,7 +580,11 @@ Msg("%s",(*I).first);
 //////////////////////////////////////////////////////////////////////////
 bool CPhysicObject::is_ai_obstacle() const
 {
+#ifdef CPHYSICOBJECT
+    return m_is_ai_obstacle;
+#else
 	return !!(READ_IF_EXISTS(pSettings, r_bool, cNameSect(), "is_ai_obstacle", true));
+#endif
 }
 
 // network synchronization ----------------------------
@@ -1022,7 +1030,7 @@ if(dbg_draw_doors)
 	return true;
 }
 
-#ifdef CPHYSICOBJECT_CHANGE
+#ifdef CPHYSICOBJECT
 void CPhysicObject::PhysicContactCallback(bool &do_colide, bool bo1, dContact &c, SGameMtl *material_1, SGameMtl *material_2)
 {
 	if (do_colide == false)

@@ -8,12 +8,7 @@
 #include "animation_script_callback.h"
 #include "xrserver_objects_alife.h"
 
-// GhenTuong: physics object callback
-#ifndef CPHYSICOBJECT_CHANGE
-#define CPHYSICOBJECT_CHANGE
-#endif
-
-#ifdef CPHYSICOBJECT_CHANGE
+#ifdef CPHYSICOBJECT
 #include "Level.h"
 #include "Entity.h"
 #include "Actor.h"
@@ -77,6 +72,11 @@ private:
 	CBlend* m_anim_blend;
 	moving_bones_snd_player* bones_snd_player;
 	anim_script_callback m_anim_script_callback;
+
+#ifdef CPHYSICOBJECT
+    bool m_is_ai_obstacle;
+#endif
+
 private:
 	//Creating
 	void CreateBody(CSE_ALifeObjectPhysic* po);
@@ -114,6 +114,11 @@ public:
 	virtual ICollisionHitCallback* get_collision_hit_callback();
 	virtual void set_collision_hit_callback(ICollisionHitCallback* cc);
 	virtual bool is_ai_obstacle() const;
+
+#ifdef CPHYSICOBJECT
+    virtual bool get_is_ai_obstacle() { return m_is_ai_obstacle; };
+    virtual void set_is_ai_obstacle(bool status) { m_is_ai_obstacle = status; };
+#endif
 
 	virtual void net_Export(NET_Packet& P);
 	virtual void net_Import(NET_Packet& P);
@@ -156,13 +161,14 @@ protected:
 	bool m_activated;
 
 
-#ifdef CPHYSICOBJECT_CHANGE
+#ifdef CPHYSICOBJECT
 private:
 	LPCSTR m_physic_contact_callback;
 	::luabind::functor<bool> m_physic_contact_function;
 public:
 	static void PhysicContactCallback(bool &do_colide, bool bo1, dContact &c, SGameMtl *material_1, SGameMtl *material_2);
 	bool PhysicContactFunction(CGameObject *who);
+
 #endif
 
 DECLARE_SCRIPT_REGISTER_FUNCTION

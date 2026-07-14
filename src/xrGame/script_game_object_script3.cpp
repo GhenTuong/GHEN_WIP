@@ -443,6 +443,7 @@ class_<CScriptGameObject> script_register_game_object2(class_<CScriptGameObject>
 		.def("get_campfire", &CScriptGameObject::get_campfire)
 		.def("get_artefact", &CScriptGameObject::get_artefact)
 		.def("get_physics_object", &CScriptGameObject::get_physics_object)
+		.def("get_destroyable_physics_object", &CScriptGameObject::get_destroyable_physics_object)
 		.def("aim_time", SAFE_WRAP((void (CScriptGameObject::*)(CScriptGameObject*, u32))&CScriptGameObject::aim_time))
 		.def("aim_time", SAFE_WRAP((u32 (CScriptGameObject::*)(CScriptGameObject*))&CScriptGameObject::aim_time))
 
@@ -554,6 +555,7 @@ class_<CScriptGameObject> script_register_game_object2(class_<CScriptGameObject>
 		.def("cast_BottleItem", SAFE_WRAP(&CScriptGameObject::cast_BottleItem))
 		.def("cast_Missile", &CScriptGameObject::cast_Missile)
 		.def("cast_Explosive", &CScriptGameObject::cast_Explosive)
+		.def("cast_PhysicsShellHolder", &CScriptGameObject::cast_PhysicsShellHolder)
 		//Alundaio: END
 
 		//Torch

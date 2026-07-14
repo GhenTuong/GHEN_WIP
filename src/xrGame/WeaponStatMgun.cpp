@@ -427,10 +427,12 @@ BOOL CWeaponStatMgun::net_Spawn(CSE_Abstract* DC)
 	PPhysicsShell()->Enable();
 	PPhysicsShell()->add_ObjectContactCallback(IgnoreOwnerCallback);
 
+#ifdef PHYSICSSHELLHOLDER
 	if (PPhysicsShell() && m_ignore_collision_flag)
 	{
-		CPhysicsShellHolder::active_ignore_collision();
+		CPhysicsShellHolder::activate_contact_collision_callback(true);
 	}
+#endif
 #endif
 
 	return TRUE;

@@ -379,6 +379,11 @@ CPhysicObject* CScriptGameObject::get_physics_object()
 	return smart_cast<CPhysicObject*>(&object());
 }
 
+CDestroyablePhysicsObject* CScriptGameObject::get_destroyable_physics_object()
+{
+	return smart_cast<CDestroyablePhysicsObject*>(&object());
+}
+
 #include "level_changer.h"
 
 void CScriptGameObject::enable_level_changer(bool b)
@@ -538,6 +543,7 @@ SPECIFIC_CAST(CScriptGameObject::cast_WeaponMagazined, CWeaponMagazined);
 SPECIFIC_CAST(CScriptGameObject::cast_WeaponMagazinedWGrenade, CWeaponMagazinedWGrenade);
 SPECIFIC_CAST(CScriptGameObject::cast_Missile, CMissile);
 SPECIFIC_CAST(CScriptGameObject::cast_Explosive, CExplosive);
+SPECIFIC_CAST(CScriptGameObject::cast_PhysicsShellHolder, CPhysicsShellHolder);
 CMedkit* CScriptGameObject::cast_Medkit()
 {
 	CInventoryItem* ii = object().cast_inventory_item();
