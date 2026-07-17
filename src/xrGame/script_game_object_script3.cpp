@@ -31,6 +31,7 @@
 #include "car.h"
 #include "ZoneCampfire.h"
 #include "physicobject.h"
+#include "DestroyablePhysicsObject.h"
 #include "artefact.h"
 #include "sight_manager_space.h"
 #include "script_attachment_manager.h"

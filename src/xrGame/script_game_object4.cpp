@@ -19,6 +19,7 @@
 #include "sight_control_action.h"
 #include "sight_manager.h"
 #include "physicobject.h"
+#include "DestroyablePhysicsObject.h"
 #include "artefact.h"
 #include "stalker_sound_data.h"
 
