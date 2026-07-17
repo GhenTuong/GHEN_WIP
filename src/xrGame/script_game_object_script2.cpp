@@ -144,6 +144,9 @@ class_<CScriptGameObject> script_register_game_object1(class_<CScriptGameObject>
 		.def("who_hit_section_name", SAFE_WRAP(&CScriptGameObject::WhoHitSectionName))
 
 		.def("rank", SAFE_WRAP(&CScriptGameObject::GetRank))
+		.def("rank_name", SAFE_WRAP(&CScriptGameObject::GetRankName))
+		.def("get_current_smart_cover_name", SAFE_WRAP(&CScriptGameObject::GetCurrentSmartCoverName))
+		.def("get_current_loophole_id", SAFE_WRAP(&CScriptGameObject::GetCurrentLoopholeId))
 		.def("command", SAFE_WRAP(&CScriptGameObject::AddAction))
 		.def("action", SAFE_WRAP(&CScriptGameObject::GetCurrentAction), adopt<result>())
 		.def("object_count", SAFE_WRAP(&CScriptGameObject::GetInventoryObjectCount))
@@ -453,6 +456,8 @@ class_<CScriptGameObject> script_register_game_object1(class_<CScriptGameObject>
 		.def("is_door_locked_for_npc", &CScriptGameObject::is_door_locked_for_npc)
 		.def("is_door_blocked_by_npc", &CScriptGameObject::is_door_blocked_by_npc)
 		.def("is_weapon_going_to_be_strapped", SAFE_WRAP(&CScriptGameObject::is_weapon_going_to_be_strapped))
+
+		.def("g_fireParams", SAFE_WRAP(&CScriptGameObject::g_fireParams))
 
 		.def("reload_weapon", &CScriptGameObject::reload_weapon);
 }

@@ -310,6 +310,7 @@ void execUserScript()
 {
 	Console->Execute("default_controls");
 	Console->ExecuteScript(Console->ConfigFile);
+	Console->Execute("dump_cvar");
 }
 
 void slowdownthread(void*)
@@ -1050,7 +1051,7 @@ int APIENTRY WinMain_impl(HINSTANCE hInstance,
 	SetWindowPos(
 		logoWindow,
 #ifndef DEBUG
-		HWND_TOPMOST,
+        HWND_TOP,
 #else
         HWND_NOTOPMOST,
 #endif // NDEBUG

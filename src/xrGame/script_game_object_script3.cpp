@@ -63,9 +63,12 @@ class_<CScriptGameObject> script_register_game_object2(class_<CScriptGameObject>
 		.def("path_completed", SAFE_WRAP(&CScriptGameObject::path_completed))
 		.def("patrol_path_make_inactual", SAFE_WRAP(&CScriptGameObject::patrol_path_make_inactual))
 		.def("enable_memory_object", SAFE_WRAP(&CScriptGameObject::enable_memory_object))
+		.def("set_vision_speed", SAFE_WRAP(&CScriptGameObject::set_vision_speed))
 		.def("active_sound_count", SAFE_WRAP((int (CScriptGameObject::*)())(&CScriptGameObject::active_sound_count)))
 		.def("active_sound_count", SAFE_WRAP((int (CScriptGameObject::*)(bool))(&CScriptGameObject::active_sound_count)))
 		.def("best_cover", SAFE_WRAP(&CScriptGameObject::best_cover))
+		.def("best_cover_invalidate", SAFE_WRAP(&CScriptGameObject::best_cover_invalidate))
+		.def("affect_cover", SAFE_WRAP(&CScriptGameObject::affect_cover))
 		.def("safe_cover", SAFE_WRAP(&CScriptGameObject::safe_cover))
 		.def("spawn_ini", SAFE_WRAP(&CScriptGameObject::spawn_ini))
 		.def("memory_remove_links", SAFE_WRAP(&CScriptGameObject::memory_remove_links))
@@ -335,9 +338,12 @@ class_<CScriptGameObject> script_register_game_object2(class_<CScriptGameObject>
 
 		//CustomZone
 		.def("set_restrictor_type", &CScriptGameObject::SetRestrictionType)
+		.def("force_set_restrictor_type", &CScriptGameObject::ForceSetRestrictionType)
+		.def("invalidate_restrictions", SAFE_WRAP(&CScriptGameObject::InvalidateRestrictions))
 		.def("get_restrictor_type", &CScriptGameObject::GetRestrictionType)
 		.def("enable_anomaly", SAFE_WRAP(&CScriptGameObject::EnableAnomaly))
 		.def("disable_anomaly", SAFE_WRAP(&CScriptGameObject::DisableAnomaly))
+		.def("is_enabled_anomaly", SAFE_WRAP(&CScriptGameObject::IsEnabledAnomaly))  // demonized
 		.def("set_idle_particles", SAFE_WRAP(&CScriptGameObject::ChangeAnomalyIdlePart))
 		.def("get_anomaly_power", SAFE_WRAP(&CScriptGameObject::GetAnomalyPower))
 		.def("set_anomaly_power", SAFE_WRAP(&CScriptGameObject::SetAnomalyPower))
@@ -450,6 +456,12 @@ class_<CScriptGameObject> script_register_game_object2(class_<CScriptGameObject>
 		.def("sniper_fire_mode", SAFE_WRAP((void (CScriptGameObject::*)(bool))&CScriptGameObject::sniper_fire_mode))
 		.def("sniper_fire_mode", SAFE_WRAP((bool (CScriptGameObject::*)() const)&CScriptGameObject::sniper_fire_mode))
 
+		.def("set_aim_params", SAFE_WRAP(&CScriptGameObject::set_aim_params))
+		.def("set_fire_queue_scale", SAFE_WRAP(&CScriptGameObject::set_fire_queue_scale))
+		.def("can_kill_enemy", SAFE_WRAP(&CScriptGameObject::can_kill_enemy))
+		.def("can_kill_member", SAFE_WRAP(&CScriptGameObject::can_kill_member))
+		.def("fire_make_sense", SAFE_WRAP(&CScriptGameObject::fire_make_sense))
+
 		.def("aim_bone_id", SAFE_WRAP((void (CScriptGameObject::*)(LPCSTR))&CScriptGameObject::aim_bone_id))
 		.def("aim_bone_id", SAFE_WRAP((LPCSTR (CScriptGameObject::*)() const)&CScriptGameObject::aim_bone_id))
 
@@ -497,6 +509,24 @@ class_<CScriptGameObject> script_register_game_object2(class_<CScriptGameObject>
 		.def("play_hud_motion", SAFE_WRAP(&CScriptGameObject::PlayHudMotion))
 		.def("switch_state", SAFE_WRAP(&CScriptGameObject::SwitchState))
 		.def("get_state", SAFE_WRAP(&CScriptGameObject::GetState))
+		.def("hud_fire_point", SAFE_WRAP(&CScriptGameObject::hud_fire_point))
+		.def("hud_fire_point2", SAFE_WRAP(&CScriptGameObject::hud_fire_point2))
+		.def("hud_fire_point_silencer", SAFE_WRAP(&CScriptGameObject::hud_fire_point_silencer))
+		.def("set_hud_fire_point", SAFE_WRAP(&CScriptGameObject::set_hud_fire_point))
+		.def("set_hud_fire_point2", SAFE_WRAP(&CScriptGameObject::set_hud_fire_point2))
+		.def("set_hud_fire_point_silencer", SAFE_WRAP(&CScriptGameObject::set_hud_fire_point_silencer))
+		.def("hud_fire_bone_id", SAFE_WRAP(&CScriptGameObject::hud_fire_bone))
+		.def("hud_fire_bone2_id", SAFE_WRAP(&CScriptGameObject::hud_fire_bone2))
+		.def("hud_fire_bone_silencer_id", SAFE_WRAP(&CScriptGameObject::hud_fire_bone_silencer))
+		.def("hud_fire_bone_name", SAFE_WRAP(&CScriptGameObject::hud_fire_bone_name))
+		.def("hud_fire_bone2_name", SAFE_WRAP(&CScriptGameObject::hud_fire_bone2_name))
+		.def("hud_fire_bone_silencer_name", SAFE_WRAP(&CScriptGameObject::hud_fire_bone_silencer_name))
+		.def("set_hud_fire_bone", SAFE_WRAP((void (CScriptGameObject::*)(u16))(&CScriptGameObject::set_hud_fire_bone)))
+		.def("set_hud_fire_bone", SAFE_WRAP((void (CScriptGameObject::*)(LPCSTR))(&CScriptGameObject::set_hud_fire_bone)))
+		.def("set_hud_fire_bone2", SAFE_WRAP((void (CScriptGameObject::*)(u16))(&CScriptGameObject::set_hud_fire_bone2)))
+		.def("set_hud_fire_bone2", SAFE_WRAP((void (CScriptGameObject::*)(LPCSTR))(&CScriptGameObject::set_hud_fire_bone2)))
+		.def("set_hud_fire_bone_silencer", SAFE_WRAP((void (CScriptGameObject::*)(u16))(&CScriptGameObject::set_hud_fire_bone_silencer)))
+		.def("set_hud_fire_bone_silencer", SAFE_WRAP((void (CScriptGameObject::*)(LPCSTR))(&CScriptGameObject::set_hud_fire_bone_silencer)))
 		// For EatableItem
 		.def("set_remaining_uses", SAFE_WRAP(&CScriptGameObject::SetRemainingUses))
 		.def("get_remaining_uses", SAFE_WRAP(&CScriptGameObject::GetRemainingUses))
@@ -636,6 +666,7 @@ class_<CScriptGameObject> script_register_game_object2(class_<CScriptGameObject>
 		.def("set_enable_anomalies_pathfinding", SAFE_WRAP(&CScriptGameObject::set_enable_anomalies_pathfinding))
 		.def("get_enable_anomalies_damage", SAFE_WRAP(&CScriptGameObject::get_enable_anomalies_damage))
 		.def("set_enable_anomalies_damage", SAFE_WRAP(&CScriptGameObject::set_enable_anomalies_damage))
+		.def("inside_anomaly", SAFE_WRAP(&CScriptGameObject::inside_anomaly))
 
 		// demonized: get object currently talking to
 		.def("get_talking_npc", &CScriptGameObject::get_talking_npc)
