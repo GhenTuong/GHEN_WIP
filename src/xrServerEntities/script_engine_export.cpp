@@ -283,7 +283,7 @@ void export_classes	(lua_State *L)
 	CWeaponStatMgun::script_register(L);
 #endif
 
-#ifdef PROJECTOR_NEW
+#ifdef PHYSICSSHELLHOLDER
 	CPhysicsShellHolder::script_register(L);
 #endif
 #endif
