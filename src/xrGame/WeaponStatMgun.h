@@ -17,6 +17,8 @@
 #include "shootingobject.h"
 #include "physicsshellholder.h"
 #include "hudsound.h"
+#include "WeaponMount.h"
+
 class CCartridge;
 class CCameraBase;
 
@@ -29,6 +31,7 @@ class CActor;
 class CInventoryOwner;
 class CInventory;
 class CWeaponStatMgun;
+class CWeaponMount;
 
 /*
 If you want CWeaponStatMgun to be an item too - putting in inventory, cost, weight, icon, condition, etc,
@@ -523,6 +526,16 @@ public:
 	float GetFireDispersionScript(bool wc = true, bool fc = false);
 
 	float GetReloadDelay() { return m_reload_delay; }
+
+    /*----------------------------------------------------------------------------------------------------
+        Weapon Mount
+    ----------------------------------------------------------------------------------------------------*/
+private:
+    CWeaponMount* m_weapon_mount;
+
+public:
+    CWeaponMount* CWeaponMount() { return m_weapon_mount; }
+    u32 CWeaponMount_PlayAnimation(u16 idx);
 
 public:
 DECLARE_SCRIPT_REGISTER_FUNCTION

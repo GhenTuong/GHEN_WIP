@@ -9437,6 +9437,9 @@
     <ClCompile Include="WeaponStatMgunMisc.cpp">
       <Filter>Core\Client\Objects\items &amp; weapons\Weapons\StationaryMgun</Filter>
     </ClCompile>
+    <ClCompile Include="CWeaponMount.cpp">
+      <Filter>Core\Client\Objects\items &amp; weapons\Weapons\StationaryMgun</Filter>
+    </ClCompile>
     <ClCompile Include="Artefact.cpp">
       <Filter>Core\Client\Objects\items &amp; weapons\Artifacts</Filter>
     </ClCompile>

@@ -124,6 +124,8 @@ CWeaponStatMgun::CWeaponStatMgun()
 #endif
 
 	p_overheat = NULL;
+
+    m_weapon_mount = nullptr;
 }
 
 CWeaponStatMgun::~CWeaponStatMgun()
@@ -137,6 +139,8 @@ CWeaponStatMgun::~CWeaponStatMgun()
 #else
 	xr_delete(camera);
 #endif
+
+    xr_delete(m_weapon_mount);
 }
 
 void CWeaponStatMgun::SetBoneCallbacks()
@@ -417,6 +421,16 @@ BOOL CWeaponStatMgun::net_Spawn(CSE_Abstract* DC)
 	}
 #endif
 
+    if (ini->line_exist(mwd, "weapon_mount"))
+    {
+        m_weapon_mount = xr_new<CWeaponMount>(this);
+        LPCSTR str = READ_IF_EXISTS(ini, r_string, mwd, "weapon_mount", nullptr);
+        if (str && ini->section_exist(str))
+        {
+            m_weapon_mount->Load(str);
+        }
+    }
+
 	inheritedShooting::Light_Create();
 
 	processing_activate();
@@ -579,7 +593,11 @@ void CWeaponStatMgun::UpdateEx(float fov)
 #endif
 
 	/* Update owner position. */
-	if (m_actor_bone != BI_NONE)
+    if (m_weapon_mount)
+    {
+        Owner()->XFORM().set(m_weapon_mount->ActorXFORM());
+    }
+    else if (m_actor_bone != BI_NONE)
 	{
 		Fvector pos;
 		Fmatrix xfm = Visual()->dcast_PKinematics()->LL_GetTransform(m_actor_bone);
@@ -955,6 +973,7 @@ bool CWeaponStatMgun::attach_Actor(CGameObject* actor)
 		Camera()->pitch = m_cur_x_rot;
 	}
 
+    CWeaponMount_PlayAnimation(CWeaponMount::eAnimIdle);
 	m_anim_weapon.Play(SStmAnimWeapon::eStmAnimWeapon_idle);
 	return true;
 #else
@@ -981,6 +1000,7 @@ void CWeaponStatMgun::detach_Actor()
 	inheritedHolder::detach_Actor();
 	Action(eWpnActivate, 0);
 	SetFeelVisionIgnore(false);
+    CWeaponMount_PlayAnimation(CWeaponMount::eAnimIdle);
 	m_anim_weapon.Play(SStmAnimWeapon::eStmAnimWeapon_idle);
 	m_anim_weapon.HandRemove();
 #else

@@ -100,6 +100,7 @@ public:
 	virtual void spatial_unregister();
 	virtual void spatial_move();
 	virtual IRenderable* dcast_Renderable() { return this; }
+    virtual IKinematics* dcast_PKinematics() { return m_kinematics; }
 
 	virtual void renderable_Render();
 

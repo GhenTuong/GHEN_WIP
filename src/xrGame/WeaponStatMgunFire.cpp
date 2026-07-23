@@ -209,6 +209,7 @@ void CWeaponStatMgun::OnShot()
 		UpdateBulletVisibility(iAmmoElapsed);
 	}
 
+    CWeaponMount_PlayAnimation(CWeaponMount::eAnimFire);
 	m_anim_weapon.Play(SStmAnimWeapon::eStmAnimWeapon_shot);
 #else
 	VERIFY(Owner());
@@ -485,10 +486,12 @@ void CWeaponStatMgun::switch2_Reload()
 
 	if (iAmmoElapsed == 0)
 	{
+        CWeaponMount_PlayAnimation(CWeaponMount::eAnimReloadEmpty);
 		m_anim_weapon.Play(SStmAnimWeapon::eStmAnimWeapon_reload0);
 	}
 	else
 	{
+        CWeaponMount_PlayAnimation(CWeaponMount::eAnimReload);
 		m_anim_weapon.Play(SStmAnimWeapon::eStmAnimWeapon_reload1);
 	}
 }

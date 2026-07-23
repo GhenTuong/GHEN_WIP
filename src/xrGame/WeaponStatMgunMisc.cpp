@@ -361,4 +361,12 @@ void CWeaponStatMgun::SStmAnimWeapon::DetachMagazine(u16 id)
 	}
 }
 #endif
+
+/*----------------------------------------------------------------------------------------------------
+    Weapon Mount
+----------------------------------------------------------------------------------------------------*/
+u32 CWeaponStatMgun::CWeaponMount_PlayAnimation(u16 idx)
+{
+    return (m_weapon_mount) ? m_weapon_mount->PlayAnimation(idx) : 0;
+}
 #endif
