@@ -4,6 +4,7 @@
 CWeaponMount::CWeaponMount(CGameObject* obj)
 {
     m_object = obj;
+    m_section._set(nullptr);
     m_attachment = nullptr;
     m_pPhysicsShell = nullptr;
 
@@ -29,8 +30,6 @@ CWeaponMount::CWeaponMount(CGameObject* obj)
 
     m_camera_bone_def = BI_NONE;
     m_camera_bone_aim = BI_NONE;
-    m_zoom_factor_def = 1;
-    m_zoom_factor_aim = 1;
 
     m_actor_bid = BI_NONE;
     m_actor_off.identity();
@@ -48,8 +47,12 @@ CWeaponMount::~CWeaponMount()
 
 void CWeaponMount::Load(LPCSTR section)
 {
-    R_ASSERT2(section, m_object->cNameSect_str());
     m_section._set(section);
+    m_object->remove_attachment(m_attachment);
+    m_attachment = nullptr;
+
+    if (m_section.size() == 0)
+        return;
 
     IKinematics* K = m_object->Visual()->dcast_PKinematics();
     CInifile* ini = K->LL_UserData();
@@ -60,7 +63,6 @@ void CWeaponMount::Load(LPCSTR section)
     LPCSTR visual = READ_IF_EXISTS(ini, r_string, section, "visual", nullptr);
     R_ASSERT2(visual, m_object->cNameSect_str());
 
-    m_object->remove_attachment(m_attachment);
     m_attachment = xr_new<script_attachment>(section, visual);
     R_ASSERT2(m_attachment, m_object->cNameSect_str());
     m_attachment->SetType(script_attachment_type::eSA_World);
@@ -113,7 +115,7 @@ void CWeaponMount::Load(LPCSTR section)
     m_animations[eAnimReloadEmpty] = READ_IF_EXISTS(ini, r_string, section, "anm_reload_empty", nullptr);
 
     m_bullet_bones.clear();
-    for (int i = 0, i < 10, i++)
+    for (int i = 0; i < 10; i++)
     {
         string128 key;
         string128 bone_name;
@@ -132,7 +134,7 @@ void CWeaponMount::Load(LPCSTR section)
             if (bid != BI_NONE)
             {
                 m_bullet_bones.push_back(bid);
-                Msg("%s:%d m_bullet_bones.push_back(%s)", __FUNCTION__, __LINE__, bone_name)
+                Msg("%s:%d m_bullet_bones.push_back(%s)", __FUNCTION__, __LINE__, bone_name);
             }
             else
             {
@@ -142,8 +144,9 @@ void CWeaponMount::Load(LPCSTR section)
     }
 }
 
-void CWeaponMount::UpdateCL()
+void CWeaponMount::UpdateBarrelDir()
 {
+    RETURN_IF_WEAPON_MOUNT_DISABLED();
     R_ASSERT2(m_attachment, m_object->cNameSect_str());
     IKinematics* K = m_attachment->dcast_PKinematics();
     {
@@ -223,16 +226,6 @@ void CWeaponMount::SetBoneCallbacks(bool value)
     }
 }
 
-u32 CWeaponMount::PlayAnimation(u16 idx)
-{
-    R_ASSERT2(idx < eAnimSize, m_object->cNameSect_str());
-    if (m_animations[idx].size())
-    {
-        return m_attachment->PlayMotion(m_animations[idx].c_str(), TRUE);
-    }
-    return 0;
-}
-
 void CWeaponMount::ClampRotationHorz(float& tgt_val, const float& cur_val, const float& lim_min, const float& lim_max)
 {
     /* Rotating limit must be lesser than 180 in both direction. */
@@ -269,8 +262,19 @@ Fmatrix& CWeaponMount::ActorXFORM()
     return m_actor_xfm;
 }
 
+u32 CWeaponMount::PlayAnimation(u16 idx)
+{
+    RETURN_IF_WEAPON_MOUNT_DISABLED(0);
+    if (m_animations[idx].size())
+    {
+        return m_attachment->PlayMotion(m_animations[idx].c_str(), TRUE);
+    }
+    return 0;
+}
+
 void CWeaponMount::UpdateBulletVisibility(u16 num)
 {
+    RETURN_IF_WEAPON_MOUNT_DISABLED();
     if (m_bullet_bones.size() == 0)
         return;
     m_bullet_count = num;
@@ -278,7 +282,7 @@ void CWeaponMount::UpdateBulletVisibility(u16 num)
     for (int k = 0, n = m_bullet_bones.size(); k < n; ++k)
     {
         u16 bid = m_bullet_bones.at(k);
-        BOOL visibility = (k < m_bullet_count) ? TRUE | FALSE;
+        BOOL visibility = (k < m_bullet_count) ? TRUE : FALSE;
         if (K->LL_GetBoneVisible(bid) != visibility)
         {
             K->LL_SetBoneVisible(bid, visibility, FALSE);

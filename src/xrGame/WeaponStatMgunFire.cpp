@@ -24,11 +24,19 @@
 
 const Fvector& CWeaponStatMgun::get_CurrentFirePoint()
 {
+    if (m_weapon_mount->Enabled())
+    {
+        return m_weapon_mount->get_CurrentFirePoint();
+    }
 	return m_fire_pos;
 }
 
 const Fmatrix& CWeaponStatMgun::get_ParticlesXFORM()
 {
+    if (m_weapon_mount->Enabled())
+    {
+        return m_weapon_mount->get_ParticlesXFORM();
+    }
 	return m_fire_bone_xform;
 }
 
@@ -207,9 +215,10 @@ void CWeaponStatMgun::OnShot()
 		--iAmmoElapsed;
 		VERIFY((u32)iAmmoElapsed == m_magazine.size());
 		UpdateBulletVisibility(iAmmoElapsed);
+        m_weapon_mount->UpdateBulletVisibility(iAmmoElapsed);
 	}
 
-    CWeaponMount_PlayAnimation(CWeaponMount::eAnimFire);
+    m_weapon_mount->PlayAnimation(CWeaponMount::eAnimFire);
 	m_anim_weapon.Play(SStmAnimWeapon::eStmAnimWeapon_shot);
 #else
 	VERIFY(Owner());
@@ -225,6 +234,10 @@ void CWeaponStatMgun::OnShot()
 
 	StartFlameParticles();
 	StartSmokeParticles(m_fire_pos, zero_vel);
+
+#ifdef EXTENDED_WEAPON_CALLBACKS
+    cast_game_object()->callback(GameObject::eOnWeaponFired)(owner->lua_game_object(), lua_game_object(), iAmmoElapsed);
+#endif
 
 #ifdef STATIONARYMGUN_NEW
 	if (m_drop_bone != BI_NONE)
@@ -272,6 +285,10 @@ void CWeaponStatMgun::OnShot(SStmBarrel &B)
 
 	B.StartFlameParticles();
 	B.StartSmokeParticles(B.m_fire_pos, zero_vel);
+
+#ifdef EXTENDED_WEAPON_CALLBACKS
+    cast_game_object()->callback(GameObject::eOnWeaponFired)(owner->lua_game_object(), lua_game_object(), iAmmoElapsed);
+#endif
 
 	if (B.m_drop_bid != BI_NONE)
 	{
@@ -486,12 +503,12 @@ void CWeaponStatMgun::switch2_Reload()
 
 	if (iAmmoElapsed == 0)
 	{
-        CWeaponMount_PlayAnimation(CWeaponMount::eAnimReloadEmpty);
+        m_weapon_mount->PlayAnimation(CWeaponMount::eAnimReloadEmpty);
 		m_anim_weapon.Play(SStmAnimWeapon::eStmAnimWeapon_reload0);
 	}
 	else
 	{
-        CWeaponMount_PlayAnimation(CWeaponMount::eAnimReload);
+        m_weapon_mount->PlayAnimation(CWeaponMount::eAnimReload);
 		m_anim_weapon.Play(SStmAnimWeapon::eStmAnimWeapon_reload1);
 	}
 }

@@ -5,6 +5,10 @@
 #include "holder_custom.h"
 #include "PhysicsShellHolder.h"
 
+#define RETURN_IF_WEAPON_MOUNT_DISABLED(...) do { if (!Enabled()) return __VA_ARGS__; } while (0)
+
+class CWeaponMount;
+
 class CWeaponMount
 {
 private:
@@ -73,13 +77,17 @@ private:
 public:
     CWeaponMount(CGameObject* obj);
     ~CWeaponMount();
+    bool Enabled() { return m_attachment != nullptr; }
     LPCSTR Section() { return m_section.c_str(); }
     CGameObject* Object() { return m_object; }
-
     void Load(LPCSTR section);
-    void UpdateCL();
+    void UpdateBarrelDir();
 
     Fmatrix& ActorXFORM();
+    const Fvector& get_CurrentFirePoint() { return m_fire_pos; }
+    const Fmatrix& get_ParticlesXFORM() { return m_fire_xfm; }
+    Fvector GetFirePos() { return m_fire_pos; }
+    Fvector GetFireDir() { return m_fire_dir; }
 
     LPCSTR Animation(u16 idx) { return (idx < eAnimSize) ? m_animations[eAnimSize].c_str() : nullptr; }
     u32 PlayAnimation(u16 idx);

@@ -125,7 +125,7 @@ CWeaponStatMgun::CWeaponStatMgun()
 
 	p_overheat = NULL;
 
-    m_weapon_mount = nullptr;
+    m_weapon_mount = xr_new<CWeaponMount>(this);
 }
 
 CWeaponStatMgun::~CWeaponStatMgun()
@@ -410,6 +410,16 @@ BOOL CWeaponStatMgun::net_Spawn(CSE_Abstract* DC)
 	m_anim_weapon.net_Spawn(DC);
 	m_sound_mgr.net_Spawn(DC);
 
+    if (ini->line_exist(mwd, "weapon_mount"))
+    {
+        LPCSTR str = READ_IF_EXISTS(pSettings, r_string, cNameSect_str(), "weapon_mount", nullptr);
+        str = (str && ini->section_exist(str)) ? str : READ_IF_EXISTS(ini, r_string, mwd, "weapon_mount", nullptr);
+        if (str && ini->section_exist(str))
+        {
+            m_weapon_mount->Load(str);
+        }
+    }
+
 	{
 		/* Hack. net_spawn() of CScriptBinderObjectWrapper runs first. This allows overriding configs read in engine net_Spawn(). */
 		LPCSTR str = READ_IF_EXISTS(pSettings, r_string, cNameSect_str(), "net_spawn_after", nullptr);
@@ -420,16 +430,6 @@ BOOL CWeaponStatMgun::net_Spawn(CSE_Abstract* DC)
 		}
 	}
 #endif
-
-    if (ini->line_exist(mwd, "weapon_mount"))
-    {
-        m_weapon_mount = xr_new<CWeaponMount>(this);
-        LPCSTR str = READ_IF_EXISTS(ini, r_string, mwd, "weapon_mount", nullptr);
-        if (str && ini->section_exist(str))
-        {
-            m_weapon_mount->Load(str);
-        }
-    }
 
 	inheritedShooting::Light_Create();
 
@@ -593,7 +593,7 @@ void CWeaponStatMgun::UpdateEx(float fov)
 #endif
 
 	/* Update owner position. */
-    if (m_weapon_mount)
+    if (m_weapon_mount->Enabled())
     {
         Owner()->XFORM().set(m_weapon_mount->ActorXFORM());
     }
@@ -720,6 +720,8 @@ void CWeaponStatMgun::UpdateBarrelDir()
 	default:
 		break;
 	}
+
+    m_weapon_mount->UpdateBarrelDir();
 #else
 	XFi.transform_dir(dep, m_destEnemyDir);
 	{
@@ -973,7 +975,7 @@ bool CWeaponStatMgun::attach_Actor(CGameObject* actor)
 		Camera()->pitch = m_cur_x_rot;
 	}
 
-    CWeaponMount_PlayAnimation(CWeaponMount::eAnimIdle);
+    m_weapon_mount->PlayAnimation(CWeaponMount::eAnimIdle);
 	m_anim_weapon.Play(SStmAnimWeapon::eStmAnimWeapon_idle);
 	return true;
 #else
@@ -1000,7 +1002,7 @@ void CWeaponStatMgun::detach_Actor()
 	inheritedHolder::detach_Actor();
 	Action(eWpnActivate, 0);
 	SetFeelVisionIgnore(false);
-    CWeaponMount_PlayAnimation(CWeaponMount::eAnimIdle);
+    m_weapon_mount->PlayAnimation(CWeaponMount::eAnimIdle);
 	m_anim_weapon.Play(SStmAnimWeapon::eStmAnimWeapon_idle);
 	m_anim_weapon.HandRemove();
 #else

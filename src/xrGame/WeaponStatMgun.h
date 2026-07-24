@@ -31,7 +31,6 @@ class CActor;
 class CInventoryOwner;
 class CInventory;
 class CWeaponStatMgun;
-class CWeaponMount;
 
 /*
 If you want CWeaponStatMgun to be an item too - putting in inventory, cost, weight, icon, condition, etc,
@@ -308,8 +307,8 @@ public:
 
 	IC bool IsActive() { return m_bActive; }
 	CScriptGameObject *GetOwner() { return (Owner()) ? Owner()->lua_game_object() : nullptr; }
-	Fvector GetFirePos() { return m_fire_pos; }
-	Fvector GetFireDir() { return m_fire_dir; }
+	Fvector GetFirePos() { return (m_weapon_mount->Enabled()) ? m_weapon_mount->GetFirePos() : m_fire_pos; }
+	Fvector GetFireDir() { return (m_weapon_mount->Enabled()) ? m_weapon_mount->GetFireDir() : m_fire_dir; }
 	float FireDispersionBase() { return fireDispersionBase; }
 	bool IsCameraZoom();
 	void SetFeelVisionIgnore(bool enable);
@@ -535,7 +534,6 @@ private:
 
 public:
     CWeaponMount* CWeaponMount() { return m_weapon_mount; }
-    u32 CWeaponMount_PlayAnimation(u16 idx);
 
 public:
 DECLARE_SCRIPT_REGISTER_FUNCTION
