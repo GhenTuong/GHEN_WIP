@@ -21,6 +21,7 @@
 
 class CCartridge;
 class CCameraBase;
+class CWeaponMount;
 
 #define DESIRED_DIR 1
 
@@ -241,6 +242,7 @@ private:
 	u16 m_actor_bone;
 	Fvector m_exit_position;
 	Fvector m_actor_offsets;
+    float m_viewport_near;
 
 	u16 m_camera_bone_def;
 	u16 m_camera_bone_aim;
@@ -305,10 +307,12 @@ public:
 	virtual bool is_ai_obstacle() const;
 	virtual CPhysicsShellHolder *cast_physics_shell_holder() { return this; }
 
+    float GetViewportNear() { return m_viewport_near; };
+    void SetViewportNear(float val) { m_viewport_near = val; };
 	IC bool IsActive() { return m_bActive; }
 	CScriptGameObject *GetOwner() { return (Owner()) ? Owner()->lua_game_object() : nullptr; }
-	Fvector GetFirePos() { return (m_weapon_mount->Enabled()) ? m_weapon_mount->GetFirePos() : m_fire_pos; }
-	Fvector GetFireDir() { return (m_weapon_mount->Enabled()) ? m_weapon_mount->GetFireDir() : m_fire_dir; }
+	Fvector GetFirePos();
+	Fvector GetFireDir();
 	float FireDispersionBase() { return fireDispersionBase; }
 	bool IsCameraZoom();
 	void SetFeelVisionIgnore(bool enable);
@@ -322,6 +326,7 @@ public:
 	LPCSTR GetAnimation(int id) { return m_animation.GetAnimation(id); }
 	void SetAnimation(int id, LPCSTR anim) { m_animation.SetAnimation(id, anim); }
 
+	void OnShellDrop(const Fmatrix& xfm, const Fvector& parent_vel);
     void OverrideRangeFOV(const CGameObject* npc, float& range);
 
 	/* Barrels APIs */
@@ -425,7 +430,9 @@ private:
 	bool IsReloadConsume();
 
 	u16 m_state_index;
-	float m_state_delay;
+	u32 m_state_timer;
+	u32 m_state_start;
+	u32 m_state_delay;
 
 	xr_vector<u16> m_bullet_bones;
 	u16 m_bullet_count;
@@ -439,19 +446,22 @@ public:
 		eStateIdle = 0,
 		eStateFire,
 		eStateReload,
+		eStateDeploy,
 	};
+	IC u16 GetState() const { return m_state_index; }
+	IC u32 GetStateDelay() const { return m_state_delay; }
 
 protected:
 	virtual void OnShot(SStmBarrel &B);
-	IC u16 GetState() const { return m_state_index; }
-	IC float GetStateDelay() const { return m_state_delay; }
 	virtual void SwitchState(u16 new_tate);
 	virtual void switch2_Idle();
 	virtual void switch2_Fire();
 	virtual void switch2_Reload();
+	virtual void switch2_Deploy();
 
 	virtual void UpdateState();
 	virtual void UpdateReload();
+	virtual void UpdateDeploy();
 
 public:
 	struct SStmNextAmmoTypeOnReload
@@ -533,7 +543,7 @@ private:
     CWeaponMount* m_weapon_mount;
 
 public:
-    CWeaponMount* CWeaponMount() { return m_weapon_mount; }
+    CWeaponMount* WeaponMount() { return m_weapon_mount; }
 
 public:
 DECLARE_SCRIPT_REGISTER_FUNCTION

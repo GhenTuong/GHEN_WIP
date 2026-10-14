@@ -362,3 +362,60 @@ const Fvector& CHelicopter::get_CurrentFirePoint()
 {
 	return m_fire_pos;
 }
+
+#ifdef HELICOPTER_NEW
+void CHelicopter::SPropeller::UpdateCL()
+{
+    ang = angle_normalize(ang + (rps * Device.fTimeDelta));
+}
+
+void CHelicopter::SetPropellerBoneCallbacks(bool val)
+{
+    if (val)
+    {
+        for (auto& I : m_ropellers)
+        {
+            CBoneInstance& B = Visual()->dcast_PKinematics()->LL_GetBoneInstance(I.bid);
+            B.set_callback(bctCustom, PropellerBoneCallback, &I);
+        }
+    }
+    else
+    {
+        for (auto& I : m_ropellers)
+        {
+            CBoneInstance& B = Visual()->dcast_PKinematics()->LL_GetBoneInstance(I.bid);
+            B.reset_callback();
+        }
+    }
+}
+
+void CHelicopter::PropellerBoneCallback(CBoneInstance* B)
+{
+    SPropeller* P = static_cast<SPropeller*>(B->callback_param());
+    B->mTransform.mulB_43(Fmatrix().rotateY(P->ang));
+}
+
+::luabind::object CHelicopter::WeaponList()
+{
+    ::luabind::object res = ::luabind::newtable(ai().script_engine().lua());
+    int idx = 1;
+    for (auto& I : m_weapons)
+    {
+        res[idx] = I.Name();
+        idx++;
+    }
+    return res;
+}
+
+CHelicopterWeapon* CHelicopter::Weapon(LPCSTR sec)
+{
+    for (auto& I : m_weapons)
+    {
+        if (sec && strcmp(I.Name(), sec) == 0)
+        {
+            return &I;
+        }
+    }
+    return nullptr;
+}
+#endif

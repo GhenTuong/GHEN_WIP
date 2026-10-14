@@ -121,6 +121,15 @@ void CHelicopter::Load(LPCSTR section)
 	m_light_color.mul_rgb(m_light_brightness);
 	LPCSTR lanim = pSettings->r_string(section, "light_color_animmator");
 	m_lanim = LALib.FindItem(lanim);
+
+#ifdef HELICOPTER_NEW
+    fly_model = eFlyModelDef;
+    LPCSTR fly = READ_IF_EXISTS(pSettings, r_string, section, "fly_model", nullptr);
+    if (fly && strcmp(fly, "new") == 0)
+    {
+        fly_model = eFlyModelNew;
+    }
+#endif
 }
 
 void CHelicopter::reload(LPCSTR section)
@@ -212,15 +221,23 @@ BOOL CHelicopter::net_Spawn(CSE_Abstract* DC)
 	m_bind_x.set(matrices[m_rotate_x_bone].c);
 	m_bind_y.set(matrices[m_rotate_y_bone].c);
 
-	IKinematicsAnimated* A = smart_cast<IKinematicsAnimated*>(Visual());
-	if (A)
-	{
-			A->PlayCycle(*heli->startup_animation);
-		K->CalculateBones(TRUE);
-	}
+    IKinematicsAnimated* A = smart_cast<IKinematicsAnimated*>(Visual());
+    if (A)
+    {
+        A->PlayCycle(heli->startup_animation.c_str());
+        K->CalculateBones(TRUE);
+    }
 
-	m_engineSound.create(*heli->engine_sound, st_Effect, sg_SourceType);
-	m_engineSound.play_at_pos(0, XFORM().c, sm_Looped);
+    if (pUserData->line_exist("helicopter_definition", "snd_engine"))
+    {
+        m_engineSound.create(pUserData->r_string("helicopter_definition", "snd_engine"), st_Effect, sg_SourceType);
+        m_engineSound.play_at_pos(0, XFORM().c, sm_Looped);
+    }
+    else
+    {
+        m_engineSound.create(*heli->engine_sound, st_Effect, sg_SourceType);
+        m_engineSound.play_at_pos(0, XFORM().c, sm_Looped);
+    }
 
 	CShootingObject::Light_Create();
 
@@ -256,11 +273,68 @@ BOOL CHelicopter::net_Spawn(CSE_Abstract* DC)
 		}
 	}
 
+#ifdef HELICOPTER_NEW
+    CInifile* ini = Visual()->dcast_PKinematics()->LL_UserData();
+    {
+        m_ropellers.clear();
+        LPCSTR str = READ_IF_EXISTS(ini, r_string, "helicopter_definition", "ropellers", nullptr);
+        if (str && strlen(str))
+        {
+            string128 sec;
+            m_ropellers.reserve(_GetItemCount(str));
+            for (int k = 0, n = _GetItemCount(str); k < n; ++k)
+            {
+                _GetItem(str, k, sec);
+                VERIFY2(strlen(sec) && ini->section_exist(sec), sec);
+                m_ropellers.emplace_back();
+                SPropeller& I = m_ropellers.back();
+                I.bid = ini->line_exist(sec, "bone") ? K->LL_BoneID(ini->r_string(sec, "bone")) : BI_NONE;
+                I.rps = READ_IF_EXISTS(ini, r_float, sec, "rpm", 1.0F) / 60.0F;
+                VERIFY2(I.rps > 0.0F, sec);
+                I.rps = PI_MUL_2 * I.rps * (READ_IF_EXISTS(ini, r_bool, sec, "dir", FALSE) ? 1.0F : -1.0F);
+                I.ang = 0.0F;
+
+            }
+        }
+        SetPropellerBoneCallbacks(true);
+    }
+    {
+        m_weapons.clear();
+        LPCSTR str = READ_IF_EXISTS(ini, r_string, "helicopter_definition", "weapons", nullptr);
+        if (str && strlen(str))
+        {
+            string128 sec;
+            m_weapons.reserve(_GetItemCount(str));
+            for (int k = 0, n = _GetItemCount(str); k < n; ++k)
+            {
+                _GetItem(str, k, sec);
+                VERIFY2(strlen(sec) && ini->section_exist(sec), sec);
+                m_weapons.emplace_back(this, sec);
+            }
+            for (auto &I : m_weapons)
+            {
+                I.net_Spawn();
+            }
+        }
+    }
+#endif
+
 	return TRUE;
 }
 
 void CHelicopter::net_Destroy()
 {
+#ifdef HELICOPTER_NEW
+    SetPropellerBoneCallbacks(false);
+    m_ropellers.clear();
+
+    for (auto& I : m_weapons)
+    {
+        I.net_Destroy();
+    }
+    m_weapons.clear();
+#endif
+
 	inherited::net_Destroy();
 	CExplosive::net_Destroy();
 	CShootingObject::Light_Destroy();
@@ -322,9 +396,18 @@ void CHelicopter::MoveStep()
 			                                     m_movement.LinearAcc_fw,
 			                                     -m_movement.LinearAcc_bk);
 
-
-		angle_lerp(m_movement.currPathH, desired_H, m_movement.GetAngSpeedHeading(m_movement.curLinearSpeed), STEP);
-		angle_lerp(m_movement.currPathP, desired_P, m_movement.GetAngSpeedPitch(m_movement.curLinearSpeed), STEP);
+#ifdef HELICOPTER_NEW
+        if (fis_zero(m_movement.curLinearSpeed, EPS_L))
+        {
+            m_movement.currPathH = desired_H;
+            m_movement.currPathP = desired_P;
+        }
+        else
+        {
+            angle_lerp(m_movement.currPathH, desired_H, m_movement.GetAngSpeedHeading(m_movement.curLinearSpeed), STEP);
+            angle_lerp(m_movement.currPathP, desired_P, m_movement.GetAngSpeedPitch(m_movement.curLinearSpeed), STEP);
+        }
+#endif
 
 		dir.setHP(m_movement.currPathH, m_movement.currPathP);
 
@@ -367,20 +450,22 @@ void CHelicopter::MoveStep()
 
 		float center_desired_H, tmp_P;
 		desired_dir.getHP(center_desired_H, tmp_P);
-		angle_lerp(m_body.currBodyHPB.x, center_desired_H, m_movement.GetAngSpeedHeading(m_movement.curLinearSpeed),
-		           STEP);
+		angle_lerp(m_body.currBodyHPB.x, center_desired_H, m_movement.GetAngSpeedHeading(m_movement.curLinearSpeed), STEP);
 	}
+#ifdef HELICOPTER_NEW
+    else if (m_body.b_looking_at_angle)
+    {
+        angle_lerp(m_body.currBodyHPB.x, m_body.looking_angle, m_movement.GetAngSpeedHeading(m_movement.curLinearSpeed), STEP);
+    }
+#endif
 	else
 	{
-		angle_lerp(m_body.currBodyHPB.x, m_movement.currPathH, m_movement.GetAngSpeedHeading(m_movement.curLinearSpeed),
-		           STEP);
+		angle_lerp(m_body.currBodyHPB.x, m_movement.currPathH, m_movement.GetAngSpeedHeading(m_movement.curLinearSpeed), STEP);
 	}
-
 
 	float needBodyP = -m_body.model_pitch_k * m_movement.curLinearSpeed;
 	if (m_movement.curLinearAcc < 0) needBodyP *= -1;
 	angle_lerp(m_body.currBodyHPB.y, needBodyP, m_body.model_angSpeedPitch, STEP);
-
 
 	float sign;
 	Fvector cp;
@@ -396,6 +481,131 @@ void CHelicopter::MoveStep()
 
 	XFORM().translate_over(m_movement.currP);
 }
+
+#ifdef HELICOPTER_NEW
+void CHelicopter::MoveStep_FlyModelNew()
+{
+    /* Air resistance. */
+    if (m_movement.currV.magnitude() < EPS_L)
+    {
+        m_movement.currV.set(0.0f, 0.0f, 0.0f);
+    }
+    else
+    {
+        m_movement.currV.sub(Fvector().set(m_movement.currV).mul(m_movement.move_air_resistance * STEP));
+    }
+
+    /* Movement. */
+    {
+        /* Distance to move. */
+        Fvector remain_path;
+        if (m_movement.type == eMovNone)
+        {
+            remain_path.set(0.0f, 0.0f, 0.0f);
+        }
+        else
+        {
+            remain_path.sub(m_movement.desiredPoint, m_movement.currP);
+        }
+
+        /* Step velocity vertical. */
+        float pathD_vert = remain_path.y;
+        float acceA_vert = (pathD_vert < 0.0f) ? m_movement.move_acceleration_dw : m_movement.move_acceleration_up;
+        float desrV_vert = sqrt(_abs(2.0f * acceA_vert * pathD_vert)) * (pathD_vert < 0.0f ? -1.0f : 1.0f);
+        clamp(desrV_vert, m_movement.move_velocity_max_dw, m_movement.move_velocity_max_up);
+
+        float stepV_vert = desrV_vert - m_movement.currV.y;
+        float acceV_vert = (stepV_vert < 0.0f) ? m_movement.move_acceleration_dw * STEP : m_movement.move_acceleration_up * STEP;
+        if (_abs(stepV_vert) > _abs(acceV_vert))
+        {
+            stepV_vert = acceV_vert;
+        }
+
+        /* Step velocity horizontal. */
+        Fvector pathD_hori;
+        pathD_hori.set(remain_path.x, 0.0f, remain_path.z);
+        Fvector desrV_hori;
+        float magnD_hori = pathD_hori.magnitude();
+        if (magnD_hori < EPS_L)
+        {
+            desrV_hori.set(0.0f, 0.0f, 0.0f);
+        }
+        else
+        {
+            float magnV_hori = sqrt(2.0f * magnD_hori * m_movement.move_acceleration_fw);
+            magnV_hori = (magnV_hori < m_movement.move_velocity_max_fw) ? magnV_hori : m_movement.move_velocity_max_fw;
+            desrV_hori.set(pathD_hori).normalize().mul(magnV_hori);
+        }
+
+        Fvector stepV_hori;
+        stepV_hori.sub(desrV_hori, Fvector().set(m_movement.currV.x, 0.0f, m_movement.currV.z));
+        float acceV_hori = m_movement.move_acceleration_fw * STEP;
+        if (stepV_hori.square_magnitude() > pow(acceV_hori, 2))
+        {
+            stepV_hori.normalize().mul(acceV_hori);
+        }
+
+        m_movement.stepV.set(0.0f, stepV_vert, 0.0f).add(stepV_hori);
+        m_movement.currV.add(m_movement.stepV);
+    }
+    if (m_movement.currV.square_magnitude() < pow(EPS_L, 2))
+    {
+        m_movement.currV.set(0.0f, 0.0f, 0.0f);
+    }
+    m_movement.stepP.set(m_movement.currV).mul(STEP);
+    m_movement.currP.add(m_movement.stepP);
+
+    /* Body. */
+    if (m_body.b_looking_at_point)
+    {
+        Fvector desired_yaw;
+        desired_yaw.sub(m_body.looking_point, m_movement.currP);
+        desired_yaw.y = 0.0f;
+        if (desired_yaw.magnitude() > EPS_L)
+        {
+            float angle = desired_yaw.getH();
+            angle_lerp(m_body.currBodyHPB.x, angle, m_body.TurnYawSpeed(m_body.currBodyHPB.x, angle), STEP);
+        }
+    }
+    else if (m_body.b_looking_at_angle)
+    {
+        float angle = m_body.looking_angle;
+        angle_lerp(m_body.currBodyHPB.x, angle, m_body.TurnYawSpeed(m_body.currBodyHPB.x, angle), STEP);
+    }
+    else
+    {
+        Fvector desired_yaw;
+        desired_yaw.sub(m_movement.desiredPoint, m_movement.currP);
+        desired_yaw.y = 0.0f;
+        if (desired_yaw.magnitude() > m_movement.onPointRangeDist)
+        {
+            float angle = desired_yaw.getH();
+            angle_lerp(m_body.currBodyHPB.x, angle, m_body.TurnYawSpeed(m_body.currBodyHPB.x, angle), STEP);
+        }
+    }
+
+    float desired_P = 0.0f;
+    float desired_B = 0.0f;
+    Fvector stepV_hori;
+    stepV_hori.set(m_movement.stepV.x, 0.0f, m_movement.stepV.z);
+    if (stepV_hori.magnitude() > EPS_L)
+    {
+        Fmatrix inv;
+        inv.rotateY(-m_body.currBodyHPB.x);
+        /* Local acceleration. */
+        Fvector vec;
+        inv.transform_dir(vec, stepV_hori);
+        vec.normalize();
+        float scale = (stepV_hori.magnitude() / STEP) / m_movement.move_acceleration_fw;
+        desired_P = m_body.model_turn_acc_angle * vec.z * scale;
+        desired_B = m_body.model_turn_acc_angle * vec.x * scale;
+    }
+    angle_lerp(m_body.currBodyHPB.y, desired_P, m_body.model_turn_acc_speed, STEP);
+    angle_lerp(m_body.currBodyHPB.z, desired_B, m_body.model_turn_acc_speed, STEP);
+
+    XFORM().setHPB(m_body.currBodyHPB.x, m_body.currBodyHPB.y, m_body.currBodyHPB.z).translate_over(m_movement.currP);
+}
+#endif
 
 void CHelicopter::UpdateCL()
 {
@@ -424,7 +634,21 @@ void CHelicopter::UpdateCL()
 	m_stepRemains += Device.fTimeDelta;
 	while (m_stepRemains > STEP)
 	{
+#ifdef HELICOPTER_NEW
+        switch (fly_model)
+        {
+        case eFlyModelDef:
+            MoveStep();
+            break;
+        case eFlyModelNew:
+            MoveStep_FlyModelNew();
+            break;
+        default:
+            break;
+        }
+#else  
 		MoveStep();
+#endif
 		m_stepRemains -= STEP;
 	}
 
@@ -447,6 +671,18 @@ void CHelicopter::UpdateCL()
 	//weapon
 	UpdateWeapons();
 	UpdateHeliParticles();
+
+#ifdef HELICOPTER_NEW
+    for (auto& I : m_ropellers)
+    {
+        I.UpdateCL();
+    }
+
+    for (auto& I : m_weapons)
+    {
+        I.UpdateCL();
+    }
+#endif
 
 	IKinematics* K = smart_cast<IKinematics*>(Visual());
 	K->CalculateBones();
@@ -527,3 +763,43 @@ void CHelicopter::net_Relcase(CObject* O)
 	CExplosive::net_Relcase(O);
 	inherited::net_Relcase(O);
 }
+
+#ifdef HELICOPTER_NEW
+void CHelicopter::renderable_Render()
+{
+    inherited::renderable_Render();
+
+    for (auto& I : m_weapons)
+    {
+        I.renderable_Render();
+    }
+}
+
+void CHelicopter::LookAtAngle(float angle, bool state)
+{
+    m_body.LookAtAngle(angle, state);
+}
+
+Fvector CHelicopter::GetMovementNew_Position()
+{
+    return m_movement.currP;
+}
+
+Fvector CHelicopter::GetMovementNew_Velocity()
+{
+    return m_movement.currV;
+}
+
+void SHeliBodyState::LookAtAngle(float angle, bool state)
+{
+    b_looking_at_point = false;
+    b_looking_at_angle = state;
+    looking_angle = angle;
+    type = (state) ? eBodyToPoint : eBodyByPath;
+}
+
+float SHeliBodyState::TurnYawSpeed(float src_angle, float dst_angle)
+{
+    return (angle_difference_signed(src_angle, dst_angle) < 0) ? model_turn_yaw_speed.x : model_turn_yaw_speed.y;
+}
+#endif

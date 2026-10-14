@@ -14,6 +14,12 @@
 #include "PHDestroyable.h"
 #include "Explosive.h"
 
+#ifdef HELICOPTER_NEW
+#include "HelicopterAddon.h"
+
+class CHelicopterWeapon;
+#endif
+
 class CScriptGameObject;
 class CLAItem;
 class CHelicopterMovManager;
@@ -60,6 +66,17 @@ struct SHeliBodyState
 	void save(NET_Packet& output_packet);
 	void load(IReader& input_packet);
 	void Load(LPCSTR section);
+
+#ifdef HELICOPTER_NEW
+    Fvector2 model_turn_yaw_speed;
+    float model_turn_acc_speed;
+    float model_turn_acc_angle;
+    float TurnYawSpeed(float src_angle, float dst_angle);
+
+	bool b_looking_at_angle;
+	float looking_angle;
+    void LookAtAngle(float angle, bool state);
+#endif
 };
 
 enum EHeilMovementState { eMovNone, eMovToPoint, eMovPatrolPath, eMovRoundPath, eMovLanding, eMovTakeOff };
@@ -136,6 +153,22 @@ public:
 	void load(IReader& input_packet);
 	void Load(LPCSTR section);
 	void net_Destroy();
+
+#ifdef HELICOPTER_NEW
+    float move_air_resistance;
+
+    float move_acceleration_fw;
+    float move_acceleration_up;
+    float move_acceleration_dw;
+
+    float move_velocity_max_fw;
+    float move_velocity_max_up;
+    float move_velocity_max_dw;
+
+    Fvector currV;
+    Fvector stepV;
+    Fvector stepP;
+#endif
 };
 
 class CHelicopter : public CEntity,
@@ -306,7 +339,11 @@ public:
 		return (inherited::net_SaveRelevant() && BOOL(PPhysicsShell() != NULL)) || m_exploded;
 	};
 
+#ifdef HELICOPTER_NEW
+	virtual void renderable_Render();
+#else
 	virtual void renderable_Render() { inherited::renderable_Render(); };
+#endif
 	virtual BOOL renderable_ShadowGenerate() { return FALSE; }
 	virtual BOOL renderable_ShadowReceive() { return TRUE; }
 
@@ -378,6 +415,41 @@ public:
 #ifdef DEBUG
 public:
 	virtual void			OnRender						();
+#endif
+
+#ifdef HELICOPTER_NEW
+public:
+    enum EFlyModel
+    {
+        eFlyModelDef,
+        eFlyModelNew,
+    };
+
+private:
+    u16 fly_model;
+    void MoveStep_FlyModelNew();
+
+    struct SPropeller
+    {
+        u16 bid;
+        float rps;
+        float ang;
+        void UpdateCL();
+    };
+    xr_vector<SPropeller> m_ropellers;
+    void SetPropellerBoneCallbacks(bool val);
+	static void _BCL PropellerBoneCallback(CBoneInstance* B);
+
+    xr_vector<CHelicopterWeapon> m_weapons;
+
+public:
+
+    ::luabind::object WeaponList();
+    CHelicopterWeapon* Weapon(LPCSTR sec);
+    
+    void LookAtAngle(float angle, bool state);
+    Fvector GetMovementNew_Position();
+    Fvector GetMovementNew_Velocity();
 #endif
 
 DECLARE_SCRIPT_REGISTER_FUNCTION

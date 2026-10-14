@@ -6,16 +6,10 @@ struct HUD_SOUND_ITEM
 	{
 	}
 
-	static void LoadSound(LPCSTR section, LPCSTR line,
-	                      ref_sound& hud_snd,
-	                      int type = sg_SourceType,
-	                      float* volume = NULL,
-	                      float* delay = NULL);
+    static void LoadSound(LPCSTR section, LPCSTR line, HUD_SOUND_ITEM& hud_snd, int type = sg_SourceType);
+    static void LoadSound(CInifile const* ini, LPCSTR section, LPCSTR line, HUD_SOUND_ITEM& hud_snd, int type = sg_SourceType);
 
-	static void LoadSound(LPCSTR section,
-	                      LPCSTR line,
-	                      HUD_SOUND_ITEM& hud_snd,
-	                      int type = sg_SourceType);
+    static void LoadSound(CInifile const* ini, LPCSTR section, LPCSTR line, ref_sound& hud_snd, int type = sg_SourceType, float* volume = NULL, float* delay = NULL);
 
 	static void DestroySound(HUD_SOUND_ITEM& hud_snd);
 
@@ -78,6 +72,7 @@ public:
 	void StopSound(LPCSTR alias);
 
 	void LoadSound(LPCSTR section, LPCSTR line, LPCSTR alias, bool exclusive = false, int type = sg_SourceType);
+    void LoadSound(CInifile const* ini, LPCSTR section, LPCSTR line, LPCSTR alias, bool exclusive = false, int type = sg_SourceType);
 
 	void SetPosition(LPCSTR alias, const Fvector& pos);
 	void StopAllSounds();

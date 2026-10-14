@@ -22,6 +22,11 @@
 #include "../xrphysics/PhysicsShell.h"
 #endif
 
+bool IsMarkStart(const motion_marks& M, const float& prev, const float& curr)
+{
+    return (M.pick_mark(prev) == nullptr) && (M.pick_mark(curr) != nullptr);
+}
+
 const Fvector& CWeaponStatMgun::get_CurrentFirePoint()
 {
     if (m_weapon_mount->Enabled())
@@ -205,7 +210,7 @@ void CWeaponStatMgun::OnShot()
 #ifdef STATIONARYMGUN_NEW
 	CGameObject *owner = (Owner()) ? Owner() : cast_game_object();
 	CCartridge &l_cartridge = (m_magazine.size() > 0) ? m_magazine.back() : m_DefaultCartridge;
-	FireBullet(m_fire_pos, m_fire_dir, GetFireDispersion(true), l_cartridge, owner->ID(), ID(), true, iMagazineSize - iAmmoElapsed);
+	FireBullet(GetFirePos(), GetFireDir(), GetFireDispersion(true), l_cartridge, owner->ID(), ID(), true, iMagazineSize - iAmmoElapsed);
 	++m_iShotNum;
 
 	m_lastCartridge = l_cartridge;
@@ -215,7 +220,6 @@ void CWeaponStatMgun::OnShot()
 		--iAmmoElapsed;
 		VERIFY((u32)iAmmoElapsed == m_magazine.size());
 		UpdateBulletVisibility(iAmmoElapsed);
-        m_weapon_mount->UpdateBulletVisibility(iAmmoElapsed);
 	}
 
     m_weapon_mount->PlayAnimation(CWeaponMount::eAnimFire);
@@ -233,23 +237,28 @@ void CWeaponStatMgun::OnShot()
 		Light_Start();
 
 	StartFlameParticles();
-	StartSmokeParticles(m_fire_pos, zero_vel);
+	StartSmokeParticles(GetFirePos(), zero_vel);
 
 #ifdef EXTENDED_WEAPON_CALLBACKS
-    cast_game_object()->callback(GameObject::eOnWeaponFired)(owner->lua_game_object(), lua_game_object(), iAmmoElapsed);
+    owner->cast_game_object()->callback(GameObject::eOnWeaponFired)(owner->lua_game_object(), lua_game_object(), iAmmoElapsed);
 #endif
 
 #ifdef STATIONARYMGUN_NEW
-	if (m_drop_bone != BI_NONE)
-	{
-		OnShellDrop(Fmatrix().mul_43(XFORM(), Visual()->dcast_PKinematics()->LL_GetTransform(m_drop_bone)).c, zero_vel);
-	}
+    if (m_weapon_mount->Enabled())
+    {
+        OnShellDrop(m_weapon_mount->DropXFORM(), zero_vel);
+    }
+    else
+    {
+        u16 bid = (m_drop_bone != BI_NONE) ? m_drop_bone : Visual()->dcast_PKinematics()->LL_GetBoneRoot();
+        OnShellDrop(Fmatrix().mul_43(XFORM(), Visual()->dcast_PKinematics()->LL_GetTransform(bid)), zero_vel);
+    }
 #else
 	OnShellDrop(m_fire_pos, zero_vel);
 #endif
 
 #ifdef STATIONARYMGUN_NEW
-	m_sounds.PlaySound("sndShoot", m_fire_pos, owner, false);
+	m_sounds.PlaySound("sndShoot", GetFirePos(), owner, false);
 #else
 	bool b_hud_mode = (Level().CurrentEntity() == smart_cast<CObject*>(Owner()));
 
@@ -286,10 +295,6 @@ void CWeaponStatMgun::OnShot(SStmBarrel &B)
 	B.StartFlameParticles();
 	B.StartSmokeParticles(B.m_fire_pos, zero_vel);
 
-#ifdef EXTENDED_WEAPON_CALLBACKS
-    cast_game_object()->callback(GameObject::eOnWeaponFired)(owner->lua_game_object(), lua_game_object(), iAmmoElapsed);
-#endif
-
 	if (B.m_drop_bid != BI_NONE)
 	{
 		B.OnShellDrop(Fmatrix().mul_43(XFORM(), Visual()->dcast_PKinematics()->LL_GetTransform(B.m_drop_bid)).c, zero_vel);
@@ -299,6 +304,15 @@ void CWeaponStatMgun::OnShot(SStmBarrel &B)
 
 	// AddShotEffector();
 	m_dAngle.set(::Random.randF(-fireDispersionBase, fireDispersionBase), ::Random.randF(-fireDispersionBase, fireDispersionBase));
+}
+
+void CWeaponStatMgun::OnShellDrop(const Fmatrix& xfm, const Fvector& parent_vel)
+{
+    if (m_sShellParticles.size() == 0)
+        return;
+    CParticlesObject* pShellParticles = CParticlesObject::Create(m_sShellParticles.c_str(), TRUE);
+    pShellParticles->UpdateParent(xfm, parent_vel);
+    pShellParticles->Play(false);
 }
 
 int CWeaponStatMgun::BarrelAmmoElapsed()
@@ -437,18 +451,25 @@ void CWeaponStatMgun::SwitchState(u16 state)
 	case eStateReload:
 		switch2_Reload();
 		break;
+    case eStateDeploy:
+		switch2_Deploy();
 	}
 }
 
 void CWeaponStatMgun::switch2_Idle()
 {
 	m_state_index = eStateIdle;
+    m_state_timer = Device.dwTimeGlobal;
+    m_state_start = Device.dwTimeGlobal;
 	m_state_delay = 0;
+
 	m_iShotNum = 0;
 	FireEnd();
 	m_sounds.StopSound("sndReload");
-	m_sounds.StopSound("sndUnload");
 	m_next_ammoType_on_reload.reset();
+    UpdateBulletVisibility(iAmmoElapsed);
+    m_weapon_mount->PlayAnimation(CWeaponMount::eAnimIdle);
+	m_anim_weapon.Play(SStmAnimWeapon::eStmAnimWeapon_idle);
 }
 
 void CWeaponStatMgun::switch2_Fire()
@@ -461,7 +482,10 @@ void CWeaponStatMgun::switch2_Fire()
 	}
 
 	m_state_index = eStateFire;
+    m_state_timer = Device.dwTimeGlobal;
+    m_state_start = Device.dwTimeGlobal;
 	m_state_delay = 0;
+
 	if (IsWorking())
 	{
 		return;
@@ -475,42 +499,68 @@ void CWeaponStatMgun::switch2_Fire()
 
 void CWeaponStatMgun::switch2_Reload()
 {
-	if (iAmmoElapsed == iMagazineSize && !m_next_ammoType_on_reload.valid())
-	{
-		return;
-	}
+    if (iAmmoElapsed == iMagazineSize && !m_next_ammoType_on_reload.valid())
+    {
+        return;
+    }
 
-	if (IsReloadConsume() && (GetAmmoCount_allType() == 0))
-	{
-		m_next_ammoType_on_reload.reset();
-		return;
-	}
+    if (IsReloadConsume() && (GetAmmoCount_allType() == 0))
+    {
+        m_next_ammoType_on_reload.reset();
+        return;
+    }
 
-	if (m_next_ammoType_on_reload.valid() && (GetAmmoCount_forType(m_ammoTypes[m_next_ammoType_on_reload.get()]) == 0))
-	{
-		m_next_ammoType_on_reload.reset();
-		return;
-	}
+    if (m_next_ammoType_on_reload.valid() && (GetAmmoCount_forType(m_ammoTypes[m_next_ammoType_on_reload.get()]) == 0))
+    {
+        m_next_ammoType_on_reload.reset();
+        return;
+    }
 
-	FireEnd();
-	m_state_index = eStateReload;
-	m_state_delay = m_reload_delay;
+    FireEnd();
+    m_state_index = eStateReload;
+    m_state_timer = Device.dwTimeGlobal;
+    m_state_start = Device.dwTimeGlobal;
+    m_state_delay = Device.dwTimeGlobal + iFloor(m_reload_delay * 1000);
 
-	{
-		Fmatrix xfm = Fmatrix().mul_43(XFORM(), Visual()->dcast_PKinematics()->LL_GetTransform(m_rotate_x_bone));
-		m_sounds.PlaySound("sndReload", Fmatrix().mul_43(XFORM(), Visual()->dcast_PKinematics()->LL_GetTransform(m_rotate_x_bone)).c, Owner(), false);
-	}
+    if (m_weapon_mount->Enabled())
+    {
+        if (iAmmoElapsed > 0)
+        {
+            u32 len = m_weapon_mount->PlayAnimation(CWeaponMount::eAnimReload);
+            m_state_delay = (len > 0) ? Device.dwTimeGlobal + len : m_state_delay;
+        }
+        else
+        {
+            u32 len = m_weapon_mount->PlayAnimation(CWeaponMount::eAnimReloadEmpty);
+            m_state_delay = (len > 0) ? Device.dwTimeGlobal + len : m_state_delay;
+        }
+        m_sounds.PlaySound("sndReload", m_weapon_mount->WeaponXFORM().c, Owner(), false);
+    }
+    else
+    {
+        Fmatrix xfm = Fmatrix().mul_43(XFORM(), Visual()->dcast_PKinematics()->LL_GetTransform(m_rotate_x_bone));
+        m_sounds.PlaySound("sndReload", xfm.c, Owner(), false);
+    }
+}
 
-	if (iAmmoElapsed == 0)
-	{
-        m_weapon_mount->PlayAnimation(CWeaponMount::eAnimReloadEmpty);
-		m_anim_weapon.Play(SStmAnimWeapon::eStmAnimWeapon_reload0);
-	}
-	else
-	{
-        m_weapon_mount->PlayAnimation(CWeaponMount::eAnimReload);
-		m_anim_weapon.Play(SStmAnimWeapon::eStmAnimWeapon_reload1);
-	}
+void CWeaponStatMgun::switch2_Deploy()
+{
+    if (iAmmoElapsed == 0)
+    {
+        return;
+    }
+
+    FireEnd();
+    m_state_index = eStateDeploy;
+    m_state_timer = Device.dwTimeGlobal;
+    m_state_start = Device.dwTimeGlobal;
+    m_state_delay = 0;
+
+    if (m_weapon_mount->Enabled())
+    {
+        u32 len = m_weapon_mount->PlayAnimation(CWeaponMount::eAnimDeploy);
+        m_state_delay = (len > 0) ? Device.dwTimeGlobal + len : m_state_delay;
+    }
 }
 
 void CWeaponStatMgun::UpdateState()
@@ -523,6 +573,9 @@ void CWeaponStatMgun::UpdateState()
 	case eStateReload:
 		UpdateReload();
 		return;
+	case eStateDeploy:
+		UpdateDeploy();
+		return;
 	default:
 		break;
 	}
@@ -530,20 +583,78 @@ void CWeaponStatMgun::UpdateState()
 
 void CWeaponStatMgun::UpdateReload()
 {
-	Fmatrix xfm = Fmatrix().mul_43(XFORM(), Visual()->dcast_PKinematics()->LL_GetTransform(m_rotate_x_bone));
-	m_sounds.SetPosition("sndReload", xfm.c);
+    if (m_weapon_mount->Enabled())
+    {
+        m_sounds.SetPosition("sndReload", m_weapon_mount->WeaponXFORM().c);
+    }
+    else
+    {
+        Fmatrix xfm = Fmatrix().mul_43(XFORM(), Visual()->dcast_PKinematics()->LL_GetTransform(m_rotate_x_bone));
+        m_sounds.SetPosition("sndReload", xfm.c);
+    }
 
-	m_state_delay = m_state_delay - Device.fTimeDelta;
-	if (m_state_delay < 0)
-	{
-		if (m_next_ammoType_on_reload.valid())
-		{
-			m_ammoType = m_next_ammoType_on_reload.get();
-			m_next_ammoType_on_reload.reset();
-		}
-		ReloadMagazine();
-		switch2_Idle();
-	}
+    if (m_weapon_mount->Enabled())
+    {
+        const CMotionDef* D = m_weapon_mount->Attachment()->CurrentMotionDef();
+        if (D && D->marks.size())
+        {
+            float motion_time_prev = (float)(m_state_timer - m_state_start) / 1000.0f;
+            float motion_time_curr = (float)(Device.dwTimeGlobal - m_state_start) / 1000.0f;
+            for (auto& M : D->marks)
+            {
+                if (M.is_empty())
+                    continue;
+                if (strstr(M.name.c_str(), "reload_update_ammo"))
+                {
+                    if (IsMarkStart(M, motion_time_prev, motion_time_curr))
+                    {
+                        /* TODO: Find a way to update to the correct amount of bullets after reload. */
+                        UpdateBulletVisibility(iMagazineSize);
+                        Msg("%s: mark %s", __FUNCTION__, M.name.c_str());
+                    }
+                }
+                if (strstr(M.name.c_str(), m_weapon_mount->SoundPrefix()))
+                {
+                    if (IsMarkStart(M, motion_time_prev, motion_time_curr))
+                    {
+                        Msg("%s: mark %s", __FUNCTION__, M.name.c_str());
+                        m_weapon_mount->PlaySound(M.name.c_str(), (Owner()) ? Owner() : cast_game_object());
+                    }
+                }
+            }
+        }
+    }
+
+    m_state_timer = Device.dwTimeGlobal;
+    if (m_state_delay < m_state_timer)
+    {
+        if (m_next_ammoType_on_reload.valid())
+        {
+            m_ammoType = m_next_ammoType_on_reload.get();
+            m_next_ammoType_on_reload.reset();
+        }
+        ReloadMagazine();
+        switch2_Idle();
+    }
+}
+
+void CWeaponStatMgun::UpdateDeploy()
+{
+    if (m_weapon_mount->Enabled())
+    {
+        m_sounds.SetPosition("sndDeploy", m_weapon_mount->WeaponXFORM().c);
+    }
+    else
+    {
+        Fmatrix xfm = Fmatrix().mul_43(XFORM(), Visual()->dcast_PKinematics()->LL_GetTransform(m_rotate_x_bone));
+        m_sounds.SetPosition("sndDeploy", xfm.c);
+    }
+
+    m_state_timer = Device.dwTimeGlobal;
+    if (m_state_delay < m_state_timer)
+    {
+        switch2_Idle();
+    }
 }
 
 bool CWeaponStatMgun::IsReloadConsume()
@@ -572,23 +683,18 @@ bool CWeaponStatMgun::IsReloadConsume()
 
 void CWeaponStatMgun::UpdateBulletVisibility(u16 num)
 {
-	if (m_bullet_bones.size() == 0)
-		return;
-	m_bullet_count = num;
-	IKinematics *K = Visual()->dcast_PKinematics();
-	for (int k = 0, n = m_bullet_bones.size(); k < n; ++k)
-	{
-		u16 bid = m_bullet_bones.at(k);
-		BOOL visibility = FALSE;
-		if (k < m_bullet_count)
-		{
-			visibility = TRUE;
-		}
-		if (K->LL_GetBoneVisible(bid) != visibility)
-		{
-			K->LL_SetBoneVisible(bid, visibility, FALSE);
-		}
-	}
+    m_bullet_count = num;
+    IKinematics* K = Visual()->dcast_PKinematics();
+    for (int k = 0, n = m_bullet_bones.size(); k < n; ++k)
+    {
+        u16 bid = m_bullet_bones.at(k);
+        BOOL visibility = (k < m_bullet_count) ? TRUE : FALSE;
+        if (K->LL_GetBoneVisible(bid) != visibility)
+        {
+            K->LL_SetBoneVisible(bid, visibility, FALSE);
+        }
+    }
+    m_weapon_mount->UpdateBulletVisibility(num);
 }
 
 CInventory *CWeaponStatMgun::GetInventory()

@@ -6069,6 +6069,9 @@
     <ClInclude Include="helicopter.h">
       <Filter>Core\Client\Objects\vehicles\heli</Filter>
     </ClInclude>
+    <ClInclude Include="HelicopterAddon.h">
+      <Filter>Core\Client\Objects\vehicles\heli</Filter>
+    </ClInclude>
     <ClInclude Include="DelayedActionFuse.h">
       <Filter>Core\Client\Objects\DelayedActionFuse</Filter>
     </ClInclude>
@@ -9735,6 +9738,9 @@
       <Filter>Core\Client\Objects\vehicles\heli</Filter>
     </ClCompile>
     <ClCompile Include="HelicopterWeapon.cpp">
+      <Filter>Core\Client\Objects\vehicles\heli</Filter>
+    </ClCompile>
+    <ClCompile Include="HelicopterAddon.cpp">
       <Filter>Core\Client\Objects\vehicles\heli</Filter>
     </ClCompile>
     <ClCompile Include="DelayedActionFuse.cpp">

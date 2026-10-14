@@ -1197,6 +1197,7 @@
     <ClInclude Include="HangingLamp.h" />
     <ClInclude Include="harvest_time.h" />
     <ClInclude Include="helicopter.h" />
+    <ClInclude Include="HelicopterAddon.h" />
     <ClInclude Include="Hit.h" />
     <ClInclude Include="HitMarker.h" />
     <ClInclude Include="hits_store.h" />
@@ -2946,6 +2947,7 @@
       <PrecompiledHeaderFile>pch_script.h</PrecompiledHeaderFile>
       <PrecompiledHeaderOutputFile>$(IntDir)$(ProjectName)_script.pch</PrecompiledHeaderOutputFile>
     </ClCompile>
+    <ClCompile Include="HelicopterAddon.cpp" />
     <ClCompile Include="Hit.cpp" />
     <ClCompile Include="HitMarker.cpp" />
     <ClCompile Include="hits_store.cpp" />

@@ -58,6 +58,7 @@ private:
 	IKinematics* m_kinematics;
 	shared_str m_model_name;
 	shared_str m_current_motion;
+	CMotionDef* m_current_motion_def;
 	u16 m_parent_bone;
 
 	LPCSTR m_script_ui_func;
@@ -99,8 +100,9 @@ public:
 	virtual void spatial_register();
 	virtual void spatial_unregister();
 	virtual void spatial_move();
+	virtual IRenderVisual* Visual() { return renderable.visual; }
 	virtual IRenderable* dcast_Renderable() { return this; }
-    virtual IKinematics* dcast_PKinematics() { return m_kinematics; }
+	virtual IKinematics* dcast_PKinematics() { return m_kinematics; }
 
 	virtual void renderable_Render();
 
@@ -191,6 +193,8 @@ public:
 
 	u32 PlayMotion(LPCSTR name, bool mixin = true, float speed = 1.f);
 	u32 motion_length(const MotionID& M, const CMotionDef*& md, float speed);
+	LPCSTR CurrentMotion() { return m_current_motion.size() ? m_current_motion.c_str() : nullptr; }
+	const CMotionDef* CurrentMotionDef() { return m_current_motion_def; }
 	
 	u16 bone_id(LPCSTR bone_name);
 	LPCSTR bone_name(u16 bone_id);

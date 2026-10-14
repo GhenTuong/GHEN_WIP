@@ -114,6 +114,10 @@ void CHelicopter::ExplodeHelicopter()
 	CExplosive::GenExplodeEvent(Position(), Fvector().set(0.f, 1.f, 0.f));
 	m_brokenSound.stop();
 	m_layered_sounds.PlaySound("sndExplode", Position(), this, false);
+
+#ifdef HELICOPTER_NEW
+    SetPropellerBoneCallbacks(false);
+#endif
 }
 
 void CHelicopter::SetDestPosition(Fvector* pos)
@@ -419,6 +423,13 @@ void SHeliBodyState::Load(LPCSTR section)
 	model_angSpeedPitch = pSettings->r_float(section, "model_angular_sp_pitch");
 	model_pitch_k = pSettings->r_float(section, "model_pitch_koef");
 	model_bank_k = pSettings->r_float(section, "model_bank_koef");
+
+#ifdef HELICOPTER_NEW
+    Fvector2 vec = READ_IF_EXISTS(pSettings, r_fvector2, section, "model_turn_yaw_speed", Fvector2().set(0.0f, 0.0f));
+    model_turn_yaw_speed.set(deg2rad(vec.x), deg2rad(vec.y));
+    model_turn_acc_speed = deg2rad(READ_IF_EXISTS(pSettings, r_float, section, "model_turn_acc_speed", 0.0f));
+    model_turn_acc_angle = deg2rad(READ_IF_EXISTS(pSettings, r_float, section, "model_turn_acc_angle", 0.0f));
+#endif
 }
 
 void SHeliBodyState::reinit()
@@ -427,6 +438,11 @@ void SHeliBodyState::reinit()
 	b_looking_at_point = false;
 	looking_point.set(0.0f, 0.0f, 0.0f);
 	parent->XFORM().getHPB(currBodyHPB.x, currBodyHPB.y, currBodyHPB.z);
+
+#ifdef HELICOPTER_NEW
+    b_looking_at_angle = false;
+    looking_angle = 0.0F;
+#endif
 }
 
 void SHeliBodyState::LookAtPoint(Fvector point, bool do_it)
@@ -483,6 +499,10 @@ float getA(float t0, float a1, float a0)
 
 float GetCurrAcc(float V0, float V1, float dist, float a0, float a1)
 {
+/*
+Starting at velocity V0, reach velocity V1 after traveling dist, where the acceleration is a0 for the first part of the motion and a1 for the second part.
+GetCurrAcc() determines which acceleration should be active right now.
+*/
 	float t10, t11, t0, t1;
 
 	t10 = t_xx(V0, V1, a0, a1, dist, 1.0f);

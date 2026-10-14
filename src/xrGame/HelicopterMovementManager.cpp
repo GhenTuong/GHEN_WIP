@@ -46,6 +46,18 @@ void SHeliMovementState::Load(LPCSTR section)
 	HeadingSpB = y0;
 	HeadingSpK = (angularSpeedHeading - HeadingSpB) / maxLinearSpeed;
 	safe_altitude_add = pSettings->r_float(section, "safe_altitude");
+
+#ifdef HELICOPTER_NEW
+    move_air_resistance = READ_IF_EXISTS(pSettings, r_float, section, "move_air_resistance", 0.0f);
+
+    move_acceleration_fw = READ_IF_EXISTS(pSettings, r_float, section, "move_acceleration_fw", 0.0f);
+    move_acceleration_up = READ_IF_EXISTS(pSettings, r_float, section, "move_acceleration_up", 0.0f);
+    move_acceleration_dw = READ_IF_EXISTS(pSettings, r_float, section, "move_acceleration_dw", 0.0f) * -1.0f;
+
+    move_velocity_max_fw = READ_IF_EXISTS(pSettings, r_float, section, "move_velocity_max_fw", 0.0f);
+    move_velocity_max_up = READ_IF_EXISTS(pSettings, r_float, section, "move_velocity_max_up", 0.0f);
+    move_velocity_max_dw = READ_IF_EXISTS(pSettings, r_float, section, "move_velocity_max_dw", 0.0f) * -1.0f;
+#endif
 }
 
 float SHeliMovementState::GetAngSpeedPitch(float speed)

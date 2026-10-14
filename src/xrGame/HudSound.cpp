@@ -15,33 +15,32 @@ void InitHudSoundSettings()
 	psHUDStepSoundVolume = pSettings->r_float("hud_sound", "hud_step_sound_vol_k");
 }
 
-void HUD_SOUND_ITEM::LoadSound(LPCSTR section, LPCSTR line,
-                               HUD_SOUND_ITEM& hud_snd, int type)
+void HUD_SOUND_ITEM::LoadSound(LPCSTR section, LPCSTR line, HUD_SOUND_ITEM& hud_snd, int type)
 {
-	hud_snd.m_activeSnd = NULL;
-	hud_snd.sounds.clear();
-
-	string256 sound_line;
-	xr_strcpy(sound_line, line);
-	int k = 0;
-	while (pSettings->line_exist(section, sound_line))
-	{
-		hud_snd.sounds.push_back(SSnd());
-		SSnd& s = hud_snd.sounds.back();
-
-		LoadSound(section, sound_line, s.snd, type, &s.volume, &s.delay);
-		xr_sprintf(sound_line, "%s%d", line, ++k);
-	} //while
+    LoadSound(pSettings, section, line, hud_snd, type);
 }
 
-void HUD_SOUND_ITEM::LoadSound(LPCSTR section,
-                               LPCSTR line,
-                               ref_sound& snd,
-                               int type,
-                               float* volume,
-                               float* delay)
+void HUD_SOUND_ITEM::LoadSound(CInifile const* ini, LPCSTR section, LPCSTR line, HUD_SOUND_ITEM& hud_snd, int type)
 {
-	LPCSTR str = pSettings->r_string(section, line);
+    hud_snd.m_activeSnd = NULL;
+    hud_snd.sounds.clear();
+
+    string256 sound_line;
+    xr_strcpy(sound_line, line);
+    int k = 0;
+    while (ini->line_exist(section, sound_line))
+    {
+        hud_snd.sounds.push_back(SSnd());
+        SSnd& s = hud_snd.sounds.back();
+
+        LoadSound(ini, section, sound_line, s.snd, type, &s.volume, &s.delay);
+        xr_sprintf(sound_line, "%s%d", line, ++k);
+    } //while
+}
+
+void HUD_SOUND_ITEM::LoadSound(CInifile const* ini, LPCSTR section, LPCSTR line, ref_sound& snd, int type, float* volume, float* delay)
+{
+	LPCSTR str = ini->r_string(section, line);
 	string256 buf_str;
 
 	int count = _GetItemCount(str);
@@ -220,13 +219,18 @@ void HUD_SOUND_COLLECTION::StopAllSounds()
 
 void HUD_SOUND_COLLECTION::LoadSound(LPCSTR section, LPCSTR line, LPCSTR alias, bool exclusive, int type)
 {
-	R_ASSERT(NULL==FindSoundItem(alias, false));
-	m_sound_items.resize(m_sound_items.size() + 1);
-	HUD_SOUND_ITEM& snd_item = m_sound_items.back();
-	HUD_SOUND_ITEM::LoadSound(section, line, snd_item, type);
-	snd_item.m_alias = alias;
-	snd_item.m_b_exclusive = exclusive;
-	snd_item.m_type = type;
+    LoadSound(pSettings, section, line, alias, exclusive, type);
+}
+
+void HUD_SOUND_COLLECTION::LoadSound(CInifile const* ini, LPCSTR section, LPCSTR line, LPCSTR alias, bool exclusive, int type)
+{
+    R_ASSERT(NULL == FindSoundItem(alias, false));
+    m_sound_items.resize(m_sound_items.size() + 1);
+    HUD_SOUND_ITEM& snd_item = m_sound_items.back();
+    HUD_SOUND_ITEM::LoadSound(ini, section, line, snd_item, type);
+    snd_item.m_alias = alias;
+    snd_item.m_b_exclusive = exclusive;
+    snd_item.m_type = type;
 }
 
 //Alundaio:
@@ -382,7 +386,7 @@ HUD_SOUND_ITEM* HUD_SOUND_COLLECTION_LAYERED::FindSoundItem(LPCSTR alias, bool b
 
 void HUD_SOUND_COLLECTION_LAYERED::LoadSound(LPCSTR section, LPCSTR line, LPCSTR alias, bool exclusive, int type)
 {
-	LoadSound(pSettings, section, line, alias, exclusive, type);
+    LoadSound(pSettings, section, line, alias, exclusive, type);
 }
 
 void HUD_SOUND_COLLECTION_LAYERED::LoadSound(CInifile const* ini, LPCSTR section, LPCSTR line, LPCSTR alias,
@@ -408,7 +412,7 @@ void HUD_SOUND_COLLECTION_LAYERED::LoadSound(CInifile const* ini, LPCSTR section
 		{
 			m_sound_items.resize(m_sound_items.size() + 1);
 			HUD_SOUND_COLLECTION& snd_item = m_sound_items.back();
-			snd_item.LoadSound(buf_str, sound_line, alias, exclusive, type);
+			snd_item.LoadSound(ini, buf_str, sound_line, alias, exclusive, type);
 			snd_item.m_alias = alias;
 			xr_sprintf(sound_line, "snd_%d_layer", ++k);
 		}
@@ -417,7 +421,7 @@ void HUD_SOUND_COLLECTION_LAYERED::LoadSound(CInifile const* ini, LPCSTR section
 	{
 		m_sound_items.resize(m_sound_items.size() + 1);
 		HUD_SOUND_COLLECTION& snd_item = m_sound_items.back();
-		snd_item.LoadSound(section, line, alias, exclusive, type);
+		snd_item.LoadSound(ini, section, line, alias, exclusive, type);
 		snd_item.m_alias = alias;
 	}
 }

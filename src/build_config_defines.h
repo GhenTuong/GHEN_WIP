@@ -45,6 +45,7 @@
 
 #define HOLDERCUSTOM_NEW								// Upgrade CHolderCustom.
 #define CAR_NEW											// Upgrade CCar.
+#define HELICOPTER_NEW									// Upgrade CHelicopter.
 #define STATIONARYMGUN_NEW								// Upgrade CSE_ALifeStationaryMgun and CWeaponStatMgun.
 #define PROJECTOR_NEW									// Upgrade CProjector.
 #define SPATIAL_CHANGE									// Upgrade spatial and feel_vision.

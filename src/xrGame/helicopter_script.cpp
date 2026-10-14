@@ -112,6 +112,42 @@ void CHelicopter::script_register(lua_State* L)
 		.def_readonly("m_dead", &CHelicopter::m_dead)
 
 		//				.def_readwrite("", &CHelicopter::)
+#ifdef HELICOPTER_NEW
+		.def("LookAtAngle", &CHelicopter::LookAtAngle)
+		.def("GetMovementNew_Position", &CHelicopter::GetMovementNew_Position)
+		.def("GetMovementNew_Velocity", &CHelicopter::GetMovementNew_Velocity)
 
+        
+		.def("WeaponList", &CHelicopter::WeaponList)
+		.def("Weapon", &CHelicopter::Weapon)
+#endif
 	];
+
+#ifdef HELICOPTER_NEW
+    module(L)
+    [
+        class_<CHelicopterWeapon>("CHelicopterWeapon")
+        .def(constructor<CGameObject*, LPCSTR>())
+        .def("Name", &CHelicopterWeapon::Name)
+        .def("Activate", &CHelicopterWeapon::Activate)
+        .def("IsActive", &CHelicopterWeapon::IsActive)
+        .def("ArmamentList", &CHelicopterWeapon::ArmamentList)
+        .def("Armament", &CHelicopterWeapon::Armament)
+        .def("Fire", &CHelicopterWeapon::Fire)
+    ];
+    module(L)
+    [
+        class_<CArmament>("CArmament")
+        .def(constructor<CGameObject*, CHelicopterWeapon*, LPCSTR>())
+        .def("Name", &CArmament::Name)
+        .def("Fire", &CArmament::Fire)
+        .def("Firing", &CArmament::Firing)
+
+        .def("GetAmmoType", &CArmament::GetAmmoType)
+        .def("SetAmmoType", &CArmament::SetAmmoType)
+        .def("GetAmmoMagSize", &CArmament::GetAmmoMagSize)
+        .def("GetAmmoElapsed", &CArmament::GetAmmoElapsed)
+        .def("SetAmmoElapsed", &CArmament::SetAmmoElapsed)
+    ];
+#endif
 }
