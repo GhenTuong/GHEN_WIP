@@ -1005,6 +1005,7 @@
     <ClInclude Include="configs_dumper.h" />
     <ClInclude Include="configs_dump_verifyer.h" />
     <ClInclude Include="console_registrator.h" />
+    <ClInclude Include="shader_bus_script.h" />
     <ClInclude Include="controller_state_panic_inline.h" />
     <ClInclude Include="control_action.h" />
     <ClInclude Include="control_action_inline.h" />
@@ -1154,7 +1155,11 @@
     <ClInclude Include="game_cl_teamdeathmatch_snd_messages.h" />
     <ClInclude Include="game_events_handler.h" />
     <ClInclude Include="game_graph.h" />
+    <ClInclude Include="game_graph_builder.h" />
     <ClInclude Include="game_graph_inline.h" />
+    <ClInclude Include="spawn_overlays.h" />
+    <ClInclude Include="spawn_packs.h" />
+    <ClInclude Include="spawn_templates.h" />
     <ClInclude Include="game_level_cross_table.h" />
     <ClInclude Include="game_level_cross_table_inline.h" />
     <ClInclude Include="game_location_selector.h" />
@@ -1560,6 +1565,8 @@
     <ClInclude Include="script_monster_action.h" />
     <ClInclude Include="script_monster_action_inline.h" />
     <ClInclude Include="script_monster_hit_info.h" />
+    <ClInclude Include="script_monster_enemy_info.h" />
+    <ClInclude Include="script_monster_home_info.h" />
     <ClInclude Include="script_movement_action.h" />
     <ClInclude Include="script_movement_action_inline.h" />
     <ClInclude Include="script_object.h" />
@@ -1916,6 +1923,7 @@
     <ClInclude Include="ui\UISubLine.h" />
     <ClInclude Include="ui\UITabButton.h" />
     <ClInclude Include="ui\UITabButtonMP.h" />
+    <ClInclude Include="ui\UITabScrollArrows.h" />
     <ClInclude Include="ui\UITabControl.h" />
     <ClInclude Include="ui\UITalkDialogWnd.h" />
     <ClInclude Include="ui\UITalkWnd.h" />
@@ -2700,6 +2708,10 @@
       <PrecompiledHeaderFile>pch_script.h</PrecompiledHeaderFile>
       <PrecompiledHeaderOutputFile>$(IntDir)$(ProjectName)_script.pch</PrecompiledHeaderOutputFile>
     </ClCompile>
+    <ClCompile Include="shader_bus_script.cpp">
+      <PrecompiledHeaderFile>pch_script.h</PrecompiledHeaderFile>
+      <PrecompiledHeaderOutputFile>$(IntDir)$(ProjectName)_script.pch</PrecompiledHeaderOutputFile>
+    </ClCompile>
     <ClCompile Include="cover_evaluators.cpp" />
     <ClCompile Include="cover_manager.cpp" />
     <ClCompile Include="cover_point_script.cpp">
@@ -2887,6 +2899,10 @@
       <PrecompiledHeaderOutputFile>$(IntDir)$(ProjectName)_script.pch</PrecompiledHeaderOutputFile>
     </ClCompile>
     <ClCompile Include="game_cl_teamdeathmatch.cpp" />
+    <ClCompile Include="game_graph_builder.cpp" />
+    <ClCompile Include="spawn_overlays.cpp" />
+    <ClCompile Include="spawn_packs.cpp" />
+    <ClCompile Include="spawn_templates.cpp" />
     <ClCompile Include="game_graph_script.cpp">
       <PrecompiledHeaderFile>pch_script.h</PrecompiledHeaderFile>
       <PrecompiledHeaderOutputFile>$(IntDir)$(ProjectName)_script.pch</PrecompiledHeaderOutputFile>
@@ -3508,6 +3524,14 @@
       <PrecompiledHeaderFile>pch_script.h</PrecompiledHeaderFile>
       <PrecompiledHeaderOutputFile>$(IntDir)$(ProjectName)_script.pch</PrecompiledHeaderOutputFile>
     </ClCompile>
+    <ClCompile Include="script_monster_enemy_info_script.cpp">
+      <PrecompiledHeaderFile>pch_script.h</PrecompiledHeaderFile>
+      <PrecompiledHeaderOutputFile>$(IntDir)$(ProjectName)_script.pch</PrecompiledHeaderOutputFile>
+    </ClCompile>
+    <ClCompile Include="script_monster_home_info_script.cpp">
+      <PrecompiledHeaderFile>pch_script.h</PrecompiledHeaderFile>
+      <PrecompiledHeaderOutputFile>$(IntDir)$(ProjectName)_script.pch</PrecompiledHeaderOutputFile>
+    </ClCompile>
     <ClCompile Include="script_movement_action.cpp" />
     <ClCompile Include="script_movement_action_script.cpp">
       <PrecompiledHeaderFile>pch_script.h</PrecompiledHeaderFile>
@@ -4119,6 +4143,8 @@
     <ClCompile Include="ui\UITabButton.cpp" />
     <ClCompile Include="ui\UITabButtonMP.cpp" />
     <ClCompile Include="ui\UITabControl.cpp" />
+    <ClCompile Include="ui\UITabControl_scroll.cpp" />
+    <ClCompile Include="ui\UITabScrollArrows.cpp" />
     <ClCompile Include="ui\UITabControl_script.cpp">
       <PrecompiledHeaderFile>pch_script.h</PrecompiledHeaderFile>
       <PrecompiledHeaderOutputFile>$(IntDir)$(ProjectName)_script.pch</PrecompiledHeaderOutputFile>
