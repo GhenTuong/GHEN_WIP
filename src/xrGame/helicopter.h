@@ -68,11 +68,6 @@ struct SHeliBodyState
 	void Load(LPCSTR section);
 
 #ifdef HELICOPTER_NEW
-    Fvector2 model_turn_yaw_speed;
-    float model_turn_acc_speed;
-    float model_turn_acc_angle;
-    float TurnYawSpeed(float src_angle, float dst_angle);
-
 	bool b_looking_at_angle;
 	float looking_angle;
     void LookAtAngle(float angle, bool state);
@@ -165,9 +160,19 @@ public:
     float move_velocity_max_up;
     float move_velocity_max_dw;
 
+    Fvector2 model_turn_yaw_speed;
+    float model_turn_acc_speed;
+    float model_turn_acc_angle;
+    float TurnYawSpeed(float src_angle, float dst_angle);
+
     Fvector currV;
     Fvector stepV;
     Fvector stepP;
+
+    float desired_attack_angle;
+    float GetAttackAcceleration();
+
+    float desired_velocity_at_destination;
 #endif
 };
 
@@ -446,10 +451,18 @@ public:
 
     ::luabind::object WeaponList();
     CHelicopterWeapon* Weapon(LPCSTR sec);
-    
+
+    Fvector GetPosition() { return m_movement.currP; }
+    Fvector GetVelocity() { return m_movement.currV; }
+    float GetAttackAngle() { return m_movement.desired_attack_angle; }
+    void SetAttackAngle(float num) { m_movement.desired_attack_angle = num; }
+    float GetVelocityAtDestination() { return m_movement.desired_velocity_at_destination; }
+    void SetVelocityAtDestination(float num) { m_movement.desired_velocity_at_destination = num; }
+    u16 GetMoveType() { return (u16)m_movement.type; }
+    void SetMoveType(u16 val) { m_movement.type = (EHeilMovementState)val; }
+
     void LookAtAngle(float angle, bool state);
-    Fvector GetMovementNew_Position();
-    Fvector GetMovementNew_Velocity();
+    Fvector GetHPB() { return m_body.currBodyHPB; }
 #endif
 
 DECLARE_SCRIPT_REGISTER_FUNCTION

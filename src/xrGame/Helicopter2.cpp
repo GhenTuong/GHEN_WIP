@@ -423,13 +423,6 @@ void SHeliBodyState::Load(LPCSTR section)
 	model_angSpeedPitch = pSettings->r_float(section, "model_angular_sp_pitch");
 	model_pitch_k = pSettings->r_float(section, "model_pitch_koef");
 	model_bank_k = pSettings->r_float(section, "model_bank_koef");
-
-#ifdef HELICOPTER_NEW
-    Fvector2 vec = READ_IF_EXISTS(pSettings, r_fvector2, section, "model_turn_yaw_speed", Fvector2().set(0.0f, 0.0f));
-    model_turn_yaw_speed.set(deg2rad(vec.x), deg2rad(vec.y));
-    model_turn_acc_speed = deg2rad(READ_IF_EXISTS(pSettings, r_float, section, "model_turn_acc_speed", 0.0f));
-    model_turn_acc_angle = deg2rad(READ_IF_EXISTS(pSettings, r_float, section, "model_turn_acc_angle", 0.0f));
-#endif
 }
 
 void SHeliBodyState::reinit()

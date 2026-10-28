@@ -113,11 +113,20 @@ void CHelicopter::script_register(lua_State* L)
 
 		//				.def_readwrite("", &CHelicopter::)
 #ifdef HELICOPTER_NEW
-		.def("LookAtAngle", &CHelicopter::LookAtAngle)
-		.def("GetMovementNew_Position", &CHelicopter::GetMovementNew_Position)
-		.def("GetMovementNew_Velocity", &CHelicopter::GetMovementNew_Velocity)
+        /* Move */
+		.def("GetPosition", &CHelicopter::GetPosition)
+		.def("GetVelocity", &CHelicopter::GetVelocity)
+		.def("GetAttackAngle", &CHelicopter::GetAttackAngle)
+		.def("GetVelocityAtDestination", &CHelicopter::GetVelocityAtDestination)
+		.def("SetVelocityAtDestination", &CHelicopter::SetVelocityAtDestination)
+		.def("SetAttackAngle", &CHelicopter::SetAttackAngle)
+		.def("GetMoveType", &CHelicopter::GetMoveType)
+		.def("SetMoveType", &CHelicopter::SetMoveType)
 
-        
+        /* Body */
+		.def("LookAtAngle", &CHelicopter::LookAtAngle)
+		.def("GetHPB", &CHelicopter::GetHPB)
+
 		.def("WeaponList", &CHelicopter::WeaponList)
 		.def("Weapon", &CHelicopter::Weapon)
 #endif

@@ -57,6 +57,11 @@ void SHeliMovementState::Load(LPCSTR section)
     move_velocity_max_fw = READ_IF_EXISTS(pSettings, r_float, section, "move_velocity_max_fw", 0.0f);
     move_velocity_max_up = READ_IF_EXISTS(pSettings, r_float, section, "move_velocity_max_up", 0.0f);
     move_velocity_max_dw = READ_IF_EXISTS(pSettings, r_float, section, "move_velocity_max_dw", 0.0f) * -1.0f;
+
+    Fvector2 vec = READ_IF_EXISTS(pSettings, r_fvector2, section, "model_turn_yaw_speed", Fvector2().set(0.0f, 0.0f));
+    model_turn_yaw_speed.set(deg2rad(vec.x), deg2rad(vec.y));
+    model_turn_acc_speed = deg2rad(READ_IF_EXISTS(pSettings, r_float, section, "model_turn_acc_speed", 0.0f));
+    model_turn_acc_angle = deg2rad(READ_IF_EXISTS(pSettings, r_float, section, "model_turn_acc_angle", 0.0f));
 #endif
 }
 
@@ -116,6 +121,10 @@ void SHeliMovementState::reinit()
 	parent->XFORM().getHPB(currPathH, currPathP, bbb);
 
 	speedInDestPoint = 0.0f;
+
+#ifdef HELICOPTER_NEW
+
+#endif
 }
 
 float SHeliMovementState::GetDistanceToDestPosition()

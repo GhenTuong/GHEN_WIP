@@ -485,6 +485,7 @@ void CHelicopter::MoveStep()
 #ifdef HELICOPTER_NEW
 void CHelicopter::MoveStep_FlyModelNew()
 {
+    Fvector stepV_hori;
     /* Air resistance. */
     if (m_movement.currV.magnitude() < EPS_L)
     {
@@ -528,17 +529,24 @@ void CHelicopter::MoveStep_FlyModelNew()
         float magnD_hori = pathD_hori.magnitude();
         if (magnD_hori < EPS_L)
         {
+            /* Stop. */
             desrV_hori.set(0.0f, 0.0f, 0.0f);
+            stepV_hori.sub(desrV_hori, Fvector().set(m_movement.currV.x, 0.0f, m_movement.currV.z));
+        }
+        else if (abs(m_movement.desired_attack_angle) > EPS)
+        {
+            /* Maintain an attack angle by keep applying an amount of acceleration. */
+            stepV_hori.set(pathD_hori).normalize().mul(-m_movement.GetAttackAcceleration() * STEP);
         }
         else
         {
-            float magnV_hori = sqrt(2.0f * magnD_hori * m_movement.move_acceleration_fw);
+            /* Try to achieve speedInDestPoint at destination. */
+            float magnV_hori = sqrt(2.0f * magnD_hori * m_movement.move_acceleration_fw + pow(m_movement.desired_velocity_at_destination, 2));
             magnV_hori = (magnV_hori < m_movement.move_velocity_max_fw) ? magnV_hori : m_movement.move_velocity_max_fw;
             desrV_hori.set(pathD_hori).normalize().mul(magnV_hori);
+            stepV_hori.sub(desrV_hori, Fvector().set(m_movement.currV.x, 0.0f, m_movement.currV.z));
         }
 
-        Fvector stepV_hori;
-        stepV_hori.sub(desrV_hori, Fvector().set(m_movement.currV.x, 0.0f, m_movement.currV.z));
         float acceV_hori = m_movement.move_acceleration_fw * STEP;
         if (stepV_hori.square_magnitude() > pow(acceV_hori, 2))
         {
@@ -548,11 +556,17 @@ void CHelicopter::MoveStep_FlyModelNew()
         m_movement.stepV.set(0.0f, stepV_vert, 0.0f).add(stepV_hori);
         m_movement.currV.add(m_movement.stepV);
     }
+
     if (m_movement.currV.square_magnitude() < pow(EPS_L, 2))
     {
         m_movement.currV.set(0.0f, 0.0f, 0.0f);
+        m_movement.stepP.set(0.0f, 0.0f, 0.0f);
     }
-    m_movement.stepP.set(m_movement.currV).mul(STEP);
+    else
+    {
+        m_movement.stepP.set(m_movement.currV).normalize().mul(m_movement.currV.magnitude() * STEP);
+    }
+
     m_movement.currP.add(m_movement.stepP);
 
     /* Body. */
@@ -564,13 +578,13 @@ void CHelicopter::MoveStep_FlyModelNew()
         if (desired_yaw.magnitude() > EPS_L)
         {
             float angle = desired_yaw.getH();
-            angle_lerp(m_body.currBodyHPB.x, angle, m_body.TurnYawSpeed(m_body.currBodyHPB.x, angle), STEP);
+            angle_lerp(m_body.currBodyHPB.x, angle, m_movement.TurnYawSpeed(m_body.currBodyHPB.x, angle), STEP);
         }
     }
     else if (m_body.b_looking_at_angle)
     {
         float angle = m_body.looking_angle;
-        angle_lerp(m_body.currBodyHPB.x, angle, m_body.TurnYawSpeed(m_body.currBodyHPB.x, angle), STEP);
+        angle_lerp(m_body.currBodyHPB.x, angle, m_movement.TurnYawSpeed(m_body.currBodyHPB.x, angle), STEP);
     }
     else
     {
@@ -580,28 +594,32 @@ void CHelicopter::MoveStep_FlyModelNew()
         if (desired_yaw.magnitude() > m_movement.onPointRangeDist)
         {
             float angle = desired_yaw.getH();
-            angle_lerp(m_body.currBodyHPB.x, angle, m_body.TurnYawSpeed(m_body.currBodyHPB.x, angle), STEP);
+            angle_lerp(m_body.currBodyHPB.x, angle, m_movement.TurnYawSpeed(m_body.currBodyHPB.x, angle), STEP);
         }
     }
 
     float desired_P = 0.0f;
     float desired_B = 0.0f;
-    Fvector stepV_hori;
-    stepV_hori.set(m_movement.stepV.x, 0.0f, m_movement.stepV.z);
+
     if (stepV_hori.magnitude() > EPS_L)
     {
         Fmatrix inv;
-        inv.rotateY(-m_body.currBodyHPB.x);
-        /* Local acceleration. */
-        Fvector vec;
-        inv.transform_dir(vec, stepV_hori);
-        vec.normalize();
-        float scale = (stepV_hori.magnitude() / STEP) / m_movement.move_acceleration_fw;
-        desired_P = m_body.model_turn_acc_angle * vec.z * scale;
-        desired_B = m_body.model_turn_acc_angle * vec.x * scale;
+        inv.setHPB(m_body.currBodyHPB.x, 0.0f, 0.0f).invert();
+        Fvector stepA_hori;
+        inv.transform_dir(stepA_hori, stepV_hori);
+        /* Convert velocity change into acceleration. */
+        stepA_hori.div(STEP);
+        float acceleration = stepA_hori.magnitude();
+        if (acceleration > EPS_L)
+        {
+            float scale = (m_movement.move_acceleration_fw > EPS_L) ? acceleration / m_movement.move_acceleration_fw : 0.0f;
+            desired_P = scale * (stepA_hori.z / acceleration) * -m_movement.model_turn_acc_angle;
+            desired_B = scale * (stepA_hori.x / acceleration) * m_movement.model_turn_acc_angle;
+        }
     }
-    angle_lerp(m_body.currBodyHPB.y, desired_P, m_body.model_turn_acc_speed, STEP);
-    angle_lerp(m_body.currBodyHPB.z, desired_B, m_body.model_turn_acc_speed, STEP);
+
+    angle_lerp(m_body.currBodyHPB.y, desired_P, m_movement.model_turn_acc_speed, STEP);
+    angle_lerp(m_body.currBodyHPB.z, desired_B, m_movement.model_turn_acc_speed, STEP);
 
     XFORM().setHPB(m_body.currBodyHPB.x, m_body.currBodyHPB.y, m_body.currBodyHPB.z).translate_over(m_movement.currP);
 }
@@ -780,16 +798,6 @@ void CHelicopter::LookAtAngle(float angle, bool state)
     m_body.LookAtAngle(angle, state);
 }
 
-Fvector CHelicopter::GetMovementNew_Position()
-{
-    return m_movement.currP;
-}
-
-Fvector CHelicopter::GetMovementNew_Velocity()
-{
-    return m_movement.currV;
-}
-
 void SHeliBodyState::LookAtAngle(float angle, bool state)
 {
     b_looking_at_point = false;
@@ -798,8 +806,17 @@ void SHeliBodyState::LookAtAngle(float angle, bool state)
     type = (state) ? eBodyToPoint : eBodyByPath;
 }
 
-float SHeliBodyState::TurnYawSpeed(float src_angle, float dst_angle)
+float SHeliMovementState::TurnYawSpeed(float src_angle, float dst_angle)
 {
     return (angle_difference_signed(src_angle, dst_angle) < 0) ? model_turn_yaw_speed.x : model_turn_yaw_speed.y;
+}
+
+float SHeliMovementState::GetAttackAcceleration()
+{
+    if (model_turn_acc_angle > EPS)
+    {
+        return _min(move_acceleration_fw, move_acceleration_fw * desired_attack_angle / model_turn_acc_angle);
+    }
+    return 0.0f;
 }
 #endif
