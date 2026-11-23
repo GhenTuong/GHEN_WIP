@@ -336,6 +336,11 @@ void SHeliMovementState::load(IReader& input_packet)
 	{
 		goByRoundPath(round_center, round_radius, !round_reverse);
 	}
+
+#ifdef HELICOPTER_NEW
+    /* Use current position instead of loading from packet. */
+    currP.set(parent->Position());
+#endif
 }
 
 float SHeliMovementState::GetSafeAltitude()

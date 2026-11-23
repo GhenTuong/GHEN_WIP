@@ -74,7 +74,7 @@ struct SHeliBodyState
 #endif
 };
 
-enum EHeilMovementState { eMovNone, eMovToPoint, eMovPatrolPath, eMovRoundPath, eMovLanding, eMovTakeOff };
+enum EHeilMovementState { eMovNone, eMovToPoint, eMovPatrolPath, eMovRoundPath, eMovLanding, eMovTakeOff, eMovStop};
 
 struct SHeliMovementState
 {
@@ -173,6 +173,21 @@ public:
     float GetAttackAcceleration();
 
     float desired_velocity_at_destination;
+
+    u16 GetMoveType() { return (u16)type; }
+    void SetMoveType(u16 val) { type = (EHeilMovementState)val; }
+    float GetVelocityMaxFW() { return move_velocity_max_fw; }
+    void SetVelocityMaxFW(float val) { move_velocity_max_fw = val; }
+    float GetVelocityMaxUP() { return move_velocity_max_up; }
+    void SetVelocityMaxUP(float val) { move_velocity_max_up = val; }
+    float GetVelocityMaxDW() { return move_velocity_max_dw; }
+    void SetVelocityMaxDW(float val) { move_velocity_max_dw = val; }
+
+    float GetAttackAngle() { return desired_attack_angle; }
+    void SetAttackAngle(float val) { desired_attack_angle = val; }
+    float GetVelocityAtDestination() { return desired_velocity_at_destination; }
+    void SetVelocityAtDestination(float val) { desired_velocity_at_destination = val; }
+
 #endif
 };
 
@@ -197,6 +212,8 @@ public:
 		eForce = u32(-1)
 	};
 
+    shared_str m_animation_idle;
+    shared_str m_animation_dead;
 
 	// heli weapons
 	bool m_use_rocket_on_attack;
@@ -229,6 +246,8 @@ public:
 	float delta_t;
 	float flag_by_fire;
 	Fmatrix m_left_rocket_bone_xform, m_right_rocket_bone_xform;
+
+    int m_shot_num;
 
 	static void _BCL BoneMGunCallbackX(CBoneInstance* B);
 	static void _BCL BoneMGunCallbackY(CBoneInstance* B);
@@ -424,6 +443,7 @@ public:
 
 #ifdef HELICOPTER_NEW
 public:
+    virtual BOOL AlwaysTheCrow() { return TRUE; }
     enum EFlyModel
     {
         eFlyModelDef,
@@ -431,8 +451,23 @@ public:
     };
 
 private:
-    u16 fly_model;
+    u16 m_body_bone;
+    u16 m_fly_model;
     void MoveStep_FlyModelNew();
+
+    bool m_use_mgun_manual;
+    enum EMGunDesire
+    {
+        eMGunDesiredDef = 0,
+        eMGunDesiredPos,
+        eMGunDesiredAng,
+    };
+    u16 m_mgun_desired_idx;
+    Fvector m_mgun_desired_pos;
+    Fvector m_mgun_desired_ang;
+
+    void MGunManual_UpdateBarrelDir();
+    void MGunManual_UpdateFire();
 
     struct SPropeller
     {
@@ -443,26 +478,31 @@ private:
     };
     xr_vector<SPropeller> m_ropellers;
     void SetPropellerBoneCallbacks(bool val);
-	static void _BCL PropellerBoneCallback(CBoneInstance* B);
+    static void _BCL PropellerBoneCallback(CBoneInstance* B);
 
     xr_vector<CHelicopterWeapon> m_weapons;
 
 public:
+    SHeliMovementState* Movement() { return &m_movement; }
+
+    Fvector GetPosition() { return m_movement.currP; }
+    void SetPosition(Fvector val) { m_movement.currP.set(val); }
+    Fvector GetVelocity() { return m_movement.currV; }
+    void SetVelocity(Fvector val) { m_movement.currV.set(val); }
+    Fvector GetRotation() { return m_body.currBodyHPB; }
+    void SetRotation(Fvector val) { m_body.currBodyHPB.set(val); }
+    void LookAtAngle(float angle, bool state);
+
+    Fvector GetFirePos() { return m_fire_pos; }
+    Fvector GetFireDir() { return m_fire_dir; }
+    void MGunFire(bool val);
+    void MGunDesireDef();
+    void MGunDesirePos(Fvector val);
+    void MGunDesireAng(Fvector val);
+    bool MGunPositionInFiringAngle(Fvector pos);
 
     ::luabind::object WeaponList();
     CHelicopterWeapon* Weapon(LPCSTR sec);
-
-    Fvector GetPosition() { return m_movement.currP; }
-    Fvector GetVelocity() { return m_movement.currV; }
-    float GetAttackAngle() { return m_movement.desired_attack_angle; }
-    void SetAttackAngle(float num) { m_movement.desired_attack_angle = num; }
-    float GetVelocityAtDestination() { return m_movement.desired_velocity_at_destination; }
-    void SetVelocityAtDestination(float num) { m_movement.desired_velocity_at_destination = num; }
-    u16 GetMoveType() { return (u16)m_movement.type; }
-    void SetMoveType(u16 val) { m_movement.type = (EHeilMovementState)val; }
-
-    void LookAtAngle(float angle, bool state);
-    Fvector GetHPB() { return m_body.currBodyHPB; }
 #endif
 
 DECLARE_SCRIPT_REGISTER_FUNCTION

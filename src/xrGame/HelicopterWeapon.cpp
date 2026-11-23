@@ -147,7 +147,9 @@ void CHelicopter::OnShot()
 		fire_dir.sub(enemy_pos, fire_pos).normalize_safe();
 	};
 
-	FireBullet(fire_pos, fire_dir, fireDispersionBase, m_CurrentAmmo, ID(), ID(), OnServer(), ::Random.randI(0, 30));
+	FireBullet(fire_pos, fire_dir, fireDispersionBase, m_CurrentAmmo, ID(), ID(), OnServer(), m_shot_num);
+
+    m_shot_num = (m_shot_num + 1) % 100;
 
 	StartShotParticles();
 	if (m_bLightShotEnabled)
@@ -207,6 +209,15 @@ bool between(const float& src, const float& min, const float& max) { return ((sr
 
 void CHelicopter::UpdateWeapons()
 {
+#ifdef HELICOPTER_NEW
+    if (m_use_mgun_manual)
+    {
+        MGunManual_UpdateBarrelDir();
+        MGunManual_UpdateFire();
+        return;
+    }
+#endif
+
 	if (isOnAttack())
 	{
 		UpdateMGunDir();
@@ -364,6 +375,124 @@ const Fvector& CHelicopter::get_CurrentFirePoint()
 }
 
 #ifdef HELICOPTER_NEW
+void CHelicopter::MGunManual_UpdateBarrelDir()
+{
+    m_fire_bone_xform.mul_43(XFORM(), Visual()->dcast_PKinematics()->LL_GetTransform(m_fire_bone));
+    m_fire_pos.set(0, 0, 0);
+    m_fire_bone_xform.transform_tiny(m_fire_pos);
+    m_fire_dir.set(0, 0, 1);
+    m_fire_bone_xform.transform_dir(m_fire_dir);
+
+    switch (m_mgun_desired_idx)
+    {
+    case eMGunDesiredDef:
+        m_tgt_rot.x = m_bind_rot.x;
+        m_tgt_rot.y = m_bind_rot.y;
+    case eMGunDesiredPos:
+        Fvector dep;
+        Fvector vec = Fmatrix().mul_43(XFORM(), Visual()->dcast_PKinematics()->LL_GetTransform(m_rotate_y_bone)).c;
+        dep.sub(m_mgun_desired_pos, vec);
+
+        Fmatrix().invert(XFORM()).transform_dir(dep);
+        if (m_body_bone != BI_NONE)
+        {
+            Fmatrix().invert(Visual()->dcast_PKinematics()->LL_GetTransform(m_body_bone)).transform_dir(dep);
+        }
+        m_i_bind_y_xform.transform_dir(dep);
+        dep.normalize_safe();
+
+        m_tgt_rot.x = angle_normalize_signed(m_bind_rot.x - dep.getP());
+        m_tgt_rot.y = angle_normalize_signed(m_bind_rot.y - dep.getH());
+        break;
+    case eMGunDesiredAng:
+        m_tgt_rot.x = angle_normalize_signed(m_bind_rot.x - m_mgun_desired_ang.y);
+        m_tgt_rot.y = angle_normalize_signed(m_bind_rot.y - m_mgun_desired_ang.x);
+        break;
+    default:
+        break;
+    }
+
+    clamp(m_tgt_rot.x, -m_lim_x_rot.y, -m_lim_x_rot.x);
+    clamp(m_tgt_rot.y, -m_lim_y_rot.y, -m_lim_y_rot.x);
+    angle_lerp(m_cur_rot.x, m_tgt_rot.x, PI, Device.fTimeDelta);
+    angle_lerp(m_cur_rot.y, m_tgt_rot.y, PI, Device.fTimeDelta);
+}
+
+void CHelicopter::MGunManual_UpdateFire()
+{
+    CShootingObject::UpdateFlameParticles();
+    CShootingObject::UpdateLight();
+
+    if (!IsWorking())
+    {
+        fShotTimeCounter = 0.0f;
+        return;
+    }
+
+    fShotTimeCounter -= Device.fTimeDelta;
+
+    while (fShotTimeCounter < 0.0f)
+    {
+        fShotTimeCounter += fOneShotTime;
+        OnShot();
+    }
+}
+
+void CHelicopter::MGunFire(bool val)
+{
+    if (val == true && IsWorking() != TRUE)
+    {
+        MGunFireStart();
+    }
+    if (val != true && IsWorking() == TRUE)
+    {
+        MGunFireEnd();
+    }
+}
+
+void CHelicopter::MGunDesireDef()
+{
+    m_mgun_desired_idx = eMGunDesiredDef;
+}
+
+void CHelicopter::MGunDesirePos(Fvector val)
+{
+    m_mgun_desired_idx = eMGunDesiredPos;
+    m_mgun_desired_pos.set(val);
+}
+
+void CHelicopter::MGunDesireAng(Fvector val)
+{
+    m_mgun_desired_idx = eMGunDesiredAng;
+    m_mgun_desired_ang.set(val);
+}
+
+bool CHelicopter::MGunPositionInFiringAngle(Fvector pos)
+{
+    Fvector dir;
+    Fvector vec = Fmatrix().mul_43(XFORM(), Visual()->dcast_PKinematics()->LL_GetTransform(m_rotate_y_bone)).c;
+    dir.sub(pos, vec);
+
+    Fmatrix().invert(XFORM()).transform_dir(dir);
+    if (m_body_bone != BI_NONE)
+    {
+        Fmatrix().invert(Visual()->dcast_PKinematics()->LL_GetTransform(m_body_bone)).transform_dir(dir);
+    }
+    m_i_bind_y_xform.transform_dir(dir);
+
+    if (dir.square_magnitude() < EPS)
+        return false;
+
+    float h = angle_normalize_signed(m_bind_rot.y - dir.getH());
+    float p = angle_normalize_signed(m_bind_rot.x - dir.getP());
+
+    if (p < -m_lim_x_rot.y || p > -m_lim_x_rot.x)
+        return false;
+    if (h < -m_lim_y_rot.y || h > -m_lim_y_rot.x)
+        return false;
+    return true;
+}
+
 void CHelicopter::SPropeller::UpdateCL()
 {
     ang = angle_normalize(ang + (rps * Device.fTimeDelta));

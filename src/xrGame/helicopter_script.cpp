@@ -38,7 +38,8 @@ void CHelicopter::script_register(lua_State* L)
 			value("eMovPatrolPath", int(eMovPatrolPath)),
 			value("eMovRoundPath", int(eMovRoundPath)),
 			value("eMovLanding", int(eMovLanding)),
-			value("eMovTakeOff", int(eMovTakeOff))
+			value("eMovTakeOff", int(eMovTakeOff)),
+			value("eMovStop", int(eMovStop))
 		]
 		.enum_("hunt_state")
 		[
@@ -113,19 +114,23 @@ void CHelicopter::script_register(lua_State* L)
 
 		//				.def_readwrite("", &CHelicopter::)
 #ifdef HELICOPTER_NEW
-        /* Move */
+        /* Movement. */
 		.def("GetPosition", &CHelicopter::GetPosition)
+		.def("SetPosition", &CHelicopter::SetPosition)
+		.def("GetRotation", &CHelicopter::GetRotation)
+		.def("SetRotation", &CHelicopter::SetRotation)
 		.def("GetVelocity", &CHelicopter::GetVelocity)
-		.def("GetAttackAngle", &CHelicopter::GetAttackAngle)
-		.def("GetVelocityAtDestination", &CHelicopter::GetVelocityAtDestination)
-		.def("SetVelocityAtDestination", &CHelicopter::SetVelocityAtDestination)
-		.def("SetAttackAngle", &CHelicopter::SetAttackAngle)
-		.def("GetMoveType", &CHelicopter::GetMoveType)
-		.def("SetMoveType", &CHelicopter::SetMoveType)
-
-        /* Body */
+		.def("SetVelocity", &CHelicopter::SetVelocity)
 		.def("LookAtAngle", &CHelicopter::LookAtAngle)
-		.def("GetHPB", &CHelicopter::GetHPB)
+        .def("Movement", &CHelicopter::Movement)
+        /* Weapon. */
+		.def("GetFirePos", &CHelicopter::GetFirePos)
+		.def("GetFireDir", &CHelicopter::GetFireDir)
+		.def("MGunFire", &CHelicopter::MGunFire)
+		.def("MGunDesireDef", &CHelicopter::MGunDesireDef)
+		.def("MGunDesirePos", &CHelicopter::MGunDesirePos)
+		.def("MGunDesireAng", &CHelicopter::MGunDesireAng)
+		.def("MGunPositionInFiringAngle", &CHelicopter::MGunPositionInFiringAngle)
 
 		.def("WeaponList", &CHelicopter::WeaponList)
 		.def("Weapon", &CHelicopter::Weapon)
@@ -133,6 +138,24 @@ void CHelicopter::script_register(lua_State* L)
 	];
 
 #ifdef HELICOPTER_NEW
+    module(L)
+    [
+        class_<SHeliMovementState>("SHeliMovementState")
+		.def(constructor<>())
+        .def("GetMoveType", &SHeliMovementState::GetMoveType)
+        .def("SetMoveType", &SHeliMovementState::SetMoveType)
+        .def("GetVelocityMaxFW", &SHeliMovementState::GetVelocityMaxFW)
+        .def("SetVelocityMaxFW", &SHeliMovementState::SetVelocityMaxFW)
+        .def("GetVelocityMaxUP", &SHeliMovementState::GetVelocityMaxUP)
+        .def("SetVelocityMaxUP", &SHeliMovementState::SetVelocityMaxUP)
+        .def("GetVelocityMaxDW", &SHeliMovementState::GetVelocityMaxDW)
+        .def("SetVelocityMaxDW", &SHeliMovementState::SetVelocityMaxDW)
+
+        .def("GetAttackAngle", &SHeliMovementState::GetAttackAngle)
+        .def("SetAttackAngle", &SHeliMovementState::SetAttackAngle)
+        .def("GetVelocityAtDestination", &SHeliMovementState::GetVelocityAtDestination)
+        .def("SetVelocityAtDestination", &SHeliMovementState::SetVelocityAtDestination)
+    ];
     module(L)
     [
         class_<CHelicopterWeapon>("CHelicopterWeapon")

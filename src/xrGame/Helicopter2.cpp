@@ -461,6 +461,11 @@ void SHeliBodyState::load(IReader& input_packet)
 	currBodyHPB.x = input_packet.r_float();
 	currBodyHPB.y = input_packet.r_float();
 	currBodyHPB.z = input_packet.r_float();
+
+#ifdef HELICOPTER_NEW
+    /* Use current rotation instead of loading from packet. */
+    parent->XFORM().getHPB(currBodyHPB);
+#endif
 }
 
 

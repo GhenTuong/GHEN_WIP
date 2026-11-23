@@ -26,6 +26,16 @@ CHelicopter::CHelicopter()
 
 	m_movement.parent = this;
 	m_body.parent = this;
+    m_shot_num = 0;
+
+#ifdef HELICOPTER_NEW
+    m_body_bone = BI_NONE;
+    m_fly_model = eFlyModelDef;
+    m_use_mgun_manual = false;
+    m_mgun_desired_idx = eMGunDesiredDef;
+    m_mgun_desired_pos.set(0.0f, 0.0f, 0.0f);
+    m_mgun_desired_ang.set(0.0f, 0.0f, 0.0f);
+#endif
 }
 
 CHelicopter::~CHelicopter(){}
@@ -123,12 +133,17 @@ void CHelicopter::Load(LPCSTR section)
 	m_lanim = LALib.FindItem(lanim);
 
 #ifdef HELICOPTER_NEW
-    fly_model = eFlyModelDef;
-    LPCSTR fly = READ_IF_EXISTS(pSettings, r_string, section, "fly_model", nullptr);
-    if (fly && strcmp(fly, "new") == 0)
+    m_animation_idle._set("");
+    m_animation_dead._set("");
+
+    m_fly_model = eFlyModelDef;
+    LPCSTR tmp = READ_IF_EXISTS(pSettings, r_string, section, "fly_model", nullptr);
+    if (tmp && strcmp(tmp, "new") == 0)
     {
-        fly_model = eFlyModelNew;
+        m_fly_model = eFlyModelNew;
     }
+
+    m_use_mgun_manual = !!READ_IF_EXISTS(pSettings, r_bool, section, "use_mgun_manual", FALSE);
 #endif
 }
 
@@ -221,11 +236,21 @@ BOOL CHelicopter::net_Spawn(CSE_Abstract* DC)
 	m_bind_x.set(matrices[m_rotate_x_bone].c);
 	m_bind_y.set(matrices[m_rotate_y_bone].c);
 
-    IKinematicsAnimated* A = smart_cast<IKinematicsAnimated*>(Visual());
-    if (A)
+    m_animation_idle = READ_IF_EXISTS(pUserData, r_string, "helicopter_definition", "animation_idle", "");
+    m_animation_dead = READ_IF_EXISTS(pUserData, r_string, "helicopter_definition", "animation_dead", "");
+
+    if (Visual()->dcast_PKinematicsAnimated())
     {
-        A->PlayCycle(heli->startup_animation.c_str());
-        K->CalculateBones(TRUE);
+        if (m_animation_idle.size())
+        {
+            Visual()->dcast_PKinematicsAnimated()->PlayCycle(m_animation_idle.c_str());
+            K->CalculateBones(TRUE);
+        }
+        else if (heli->startup_animation.size())
+        {
+            Visual()->dcast_PKinematicsAnimated()->PlayCycle(heli->startup_animation.c_str());
+            K->CalculateBones(TRUE);
+        }
     }
 
     if (pUserData->line_exist("helicopter_definition", "snd_engine"))
@@ -275,9 +300,13 @@ BOOL CHelicopter::net_Spawn(CSE_Abstract* DC)
 
 #ifdef HELICOPTER_NEW
     CInifile* ini = Visual()->dcast_PKinematics()->LL_UserData();
+
+    const LPCSTR def = "helicopter_definition";
+    m_body_bone = ini->line_exist(def, "body_bone") ? K->LL_BoneID(ini->r_string(def, "body_bone")) : BI_NONE;
+
     {
         m_ropellers.clear();
-        LPCSTR str = READ_IF_EXISTS(ini, r_string, "helicopter_definition", "ropellers", nullptr);
+        LPCSTR str = READ_IF_EXISTS(ini, r_string, def, "ropellers", nullptr);
         if (str && strlen(str))
         {
             string128 sec;
@@ -300,7 +329,7 @@ BOOL CHelicopter::net_Spawn(CSE_Abstract* DC)
     }
     {
         m_weapons.clear();
-        LPCSTR str = READ_IF_EXISTS(ini, r_string, "helicopter_definition", "weapons", nullptr);
+        LPCSTR str = READ_IF_EXISTS(ini, r_string, def, "weapons", nullptr);
         if (str && strlen(str))
         {
             string128 sec;
@@ -497,20 +526,26 @@ void CHelicopter::MoveStep_FlyModelNew()
     }
 
     /* Movement. */
+    if (m_movement.type == eMovNone)
+    {
+        stepV_hori.set(0.0f, 0.0f, 0.0f);
+        m_movement.stepV.set(0.0f, 0.0f, 0.0f);
+    }
+    else
     {
         /* Distance to move. */
-        Fvector remain_path;
-        if (m_movement.type == eMovNone)
+        Fvector pathD_move;
+        if (m_movement.type == eMovStop)
         {
-            remain_path.set(0.0f, 0.0f, 0.0f);
+            pathD_move.set(0.0f, 0.0f, 0.0f);
         }
         else
         {
-            remain_path.sub(m_movement.desiredPoint, m_movement.currP);
+            pathD_move.sub(m_movement.desiredPoint, m_movement.currP);
         }
 
         /* Step velocity vertical. */
-        float pathD_vert = remain_path.y;
+        float pathD_vert = pathD_move.y;
         float acceA_vert = (pathD_vert < 0.0f) ? m_movement.move_acceleration_dw : m_movement.move_acceleration_up;
         float desrV_vert = sqrt(_abs(2.0f * acceA_vert * pathD_vert)) * (pathD_vert < 0.0f ? -1.0f : 1.0f);
         clamp(desrV_vert, m_movement.move_velocity_max_dw, m_movement.move_velocity_max_up);
@@ -524,7 +559,7 @@ void CHelicopter::MoveStep_FlyModelNew()
 
         /* Step velocity horizontal. */
         Fvector pathD_hori;
-        pathD_hori.set(remain_path.x, 0.0f, remain_path.z);
+        pathD_hori.set(pathD_move.x, 0.0f, pathD_move.z);
         Fvector desrV_hori;
         float magnD_hori = pathD_hori.magnitude();
         if (magnD_hori < EPS_L)
@@ -653,7 +688,7 @@ void CHelicopter::UpdateCL()
 	while (m_stepRemains > STEP)
 	{
 #ifdef HELICOPTER_NEW
-        switch (fly_model)
+        switch (m_fly_model)
         {
         case eFlyModelDef:
             MoveStep();
@@ -754,6 +789,12 @@ void CHelicopter::save(NET_Packet& output_packet)
 	save_data(m_max_mgun_dist, output_packet);
 	save_data(m_time_between_rocket_attack, output_packet);
 	save_data(m_syncronize_rocket, output_packet);
+
+#ifdef HELICOPTER_NEW
+    CSE_Abstract* E = Level().Server->ID_to_entity(ID());
+    E->o_Position.set(Position());
+    XFORM().getXYZ(E->o_Angle);
+#endif
 }
 
 void CHelicopter::load(IReader& input_packet)
