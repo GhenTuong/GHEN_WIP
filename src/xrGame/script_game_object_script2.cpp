@@ -21,6 +21,7 @@
 #include "script_monster_hit_info.h"
 #include "script_monster_enemy_info.h"
 #include "script_monster_home_info.h"
+#include "script_monster_movement_info.h"
 #include "script_entity_action.h"
 #include "action_planner.h"
 //#include "../xrphysics/PhysicsShell.h"
@@ -122,6 +123,7 @@ class_<CScriptGameObject> script_register_game_object1(class_<CScriptGameObject>
 		//		.def("armor",						&CScriptGameObject::Armor)
 		.def("max_health", &CScriptGameObject::MaxHealth)
 		.def("accuracy", &CScriptGameObject::Accuracy)
+		.def("game_death_time", SAFE_WRAP(&CScriptGameObject::GameDeathTime))
 		.def("alive", SAFE_WRAP(&CScriptGameObject::Alive))
 		.def("team", &CScriptGameObject::Team)
 		.def("squad", &CScriptGameObject::Squad)
@@ -220,6 +222,7 @@ class_<CScriptGameObject> script_register_game_object1(class_<CScriptGameObject>
 		.def("memory_position", SAFE_WRAP(&CScriptGameObject::memory_position))
 		.def("best_weapon", SAFE_WRAP(&CScriptGameObject::best_weapon))
 		.def("explode", SAFE_WRAP(&CScriptGameObject::explode))
+		.def("set_initiator", SAFE_WRAP(&CScriptGameObject::set_initiator))
 		.def("get_enemy", SAFE_WRAP(&CScriptGameObject::GetEnemy))
 		.def("get_corpse", SAFE_WRAP(&CScriptGameObject::GetCorpse))
 		.def("get_enemy_strength", &CScriptGameObject::GetEnemyStrength)
@@ -227,6 +230,7 @@ class_<CScriptGameObject> script_register_game_object1(class_<CScriptGameObject>
 		.def("get_monster_hit_info", SAFE_WRAP(&CScriptGameObject::GetMonsterHitInfo))
 		.def("get_monster_enemy_info", SAFE_WRAP(&CScriptGameObject::GetMonsterEnemyInfo))
 		.def("get_monster_home_info", SAFE_WRAP(&CScriptGameObject::GetMonsterHomeInfo))
+		.def("get_monster_movement_info", SAFE_WRAP(&CScriptGameObject::GetMonsterMovementInfo))
 		.def("bind_object", SAFE_WRAP(&CScriptGameObject::bind_object), adopt<2>())
 		.def("motivation_action_manager", &script_action_planner)
 
@@ -347,6 +351,7 @@ class_<CScriptGameObject> script_register_game_object1(class_<CScriptGameObject>
 		.def("set_actor_direction", (void (CScriptGameObject::*)(float, float))& CScriptGameObject::SetActorDirection)
 		.def("set_actor_direction", (void (CScriptGameObject::*)(float, float, float))& CScriptGameObject::SetActorDirection)
 		.def("set_actor_direction", (void (CScriptGameObject::*)(const Fvector&))&CScriptGameObject::SetActorDirection)
+		.def("get_actor_direction", &CScriptGameObject::GetActorDirection)
 
 		.def("disable_hit_marks", (void (CScriptGameObject::*)(bool))&CScriptGameObject::DisableHitMarks)
 		.def("disable_hit_marks", (bool (CScriptGameObject::*)() const)&CScriptGameObject::DisableHitMarks)
@@ -467,5 +472,7 @@ class_<CScriptGameObject> script_register_game_object1(class_<CScriptGameObject>
 
 		.def("g_fireParams", SAFE_WRAP(&CScriptGameObject::g_fireParams))
 
-		.def("reload_weapon", &CScriptGameObject::reload_weapon);
+		.def("reload_weapon", &CScriptGameObject::reload_weapon)
+		.def("is_pending", &CScriptGameObject::IsPending)
+		.def("set_pending", &CScriptGameObject::SetPending);
 }
