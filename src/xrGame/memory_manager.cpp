@@ -122,7 +122,7 @@ void CMemoryManager::update_enemies(const bool& registered_in_combat)
 
 void CMemoryManager::update(float time_delta)
 {
-	START_PROFILE("Memory Manager")
+	START_PROFILE("Memory Manager", PROF_CAT(AI))
 		visual().update(time_delta);
 		sound().update();
 		hit().update();
@@ -347,6 +347,36 @@ void CMemoryManager::make_object_visible_somewhen(const CEntityAlive* enemy)
 	//	if (obj1)
 	//		Msg						("[%6d] make_object_visible_somewhen [%s] = %x",Device.dwTimeGlobal,*enemy->cName(),obj1->m_squad_mask.get());
 	obj1->visible(mask, prev);
+}
+
+void CMemoryManager::make_object_visible_somewhen(const CEntityAlive* enemy, const CMemoryManager& source)
+{
+	const CMemoryInfo known = source.memory(enemy);
+	if (!known.m_object)
+		return;
+
+	const MemorySpace::CVisibleObject* own = visual().visible_object(enemy);
+	const MemorySpace::CVisibleObject* seen = source.visual().visible_object(enemy);
+
+	MemorySpace::CVisibleObject taken;
+	bool take = true;
+	if (!own)
+		taken = static_cast<CVisibleObject>(known);
+	else if (seen && (own->m_level_time < seen->m_level_time))
+		taken = *seen;
+	else
+		take = false;
+
+	make_object_visible_somewhen(enemy);
+
+	if (!take)
+		return;
+
+	MemorySpace::CVisibleObject* obj = visual().visible_object(enemy);
+	VERIFY(obj);
+	obj->m_object_params = taken.m_object_params;
+	obj->m_level_time = taken.m_level_time;
+	obj->m_last_level_time = taken.m_last_level_time;
 }
 
 void CMemoryManager::save(NET_Packet& packet) const

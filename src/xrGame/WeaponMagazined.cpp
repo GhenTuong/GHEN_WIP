@@ -694,7 +694,7 @@ void CWeaponMagazined::UpdateCL()
 BOOL mt_UpdateWeaponSounds = TRUE;
 void CWeaponMagazined::UpdateSoundsPositionsImpl()
 {
-	PROF_EVENT();
+	PROF_EVENT(PROF_CAT(Audio));
 	auto& P = get_LastFP();
 	m_sounds.UpdateAllSoundsPositions(P);
 }
@@ -918,7 +918,8 @@ void CWeaponMagazined::OnShot()
 	//дым из ствола
 	ForceUpdateFireParticles();
 
-	StartSmokeParticles(get_LastFP(), vel);
+	// A script fitted suppressor smokes from its own tip
+	StartSmokeParticles(IsSilencerBoneHidden() && SilencerAttachable() && IsSilencerAttached() ? get_LastFPSilencer() : get_LastFP(), vel);
 
 #ifdef EXTENDED_WEAPON_CALLBACKS
 	CGameObject* object = smart_cast<CGameObject*>(H_Parent());
