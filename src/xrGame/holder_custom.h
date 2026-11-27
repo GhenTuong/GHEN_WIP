@@ -15,7 +15,7 @@ class CHolderCustom
 private:
 	CGameObject* m_owner;
 	CActor* m_ownerActor;
-protected:
+public:
 	CGameObject* Owner() { return m_owner; }
 	CActor* OwnerActor() { return m_ownerActor; }
 	bool m_bEnterLocked;

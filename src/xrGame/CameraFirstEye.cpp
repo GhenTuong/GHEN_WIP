@@ -84,6 +84,34 @@ void CCameraFirstEye::Update(Fvector& point, Fvector& noise_dangle)
 		parent->XFORM().transform_dir(vDirection);
 		parent->XFORM().transform_dir(vNormal);
 	}
+
+	if (!_valid(vDirection))
+	{
+		Msg("CCameraFirstEye::Update invalid direction: yaw=%f pitch=%f roll=%f noise=(%f,%f,%f) local=(%f,%f,%f) transformed=(%f,%f,%f)",
+			yaw, pitch, roll, noise_dangle.x, noise_dangle.y, noise_dangle.z,
+			mR.k.x, mR.k.y, mR.k.z, vDirection.x, vDirection.y, vDirection.z);
+		if (m_Flags.is(flRelativeLink))
+		{
+			const Fmatrix& parent_xform = parent->XFORM();
+			Msg("CCameraFirstEye::Update parent basis: i=(%f,%f,%f) j=(%f,%f,%f) k=(%f,%f,%f)",
+				parent_xform.i.x, parent_xform.i.y, parent_xform.i.z,
+				parent_xform.j.x, parent_xform.j.y, parent_xform.j.z,
+				parent_xform.k.x, parent_xform.k.y, parent_xform.k.z);
+		}
+	}
+
+	R_ASSERT2(_valid(vDirection), "Invalid first-person camera direction");
+	R_ASSERT2(_valid(vNormal), "Invalid first-person camera up vector");
+	R_ASSERT(vDirection.square_magnitude() > EPS);
+	R_ASSERT(vNormal.square_magnitude() > EPS);
+
+	vDirection.normalize();
+	Fvector right;
+	right.crossproduct(vNormal, vDirection);
+	R_ASSERT2(_valid(right), "Invalid first-person camera right vector");
+	R_ASSERT(right.square_magnitude() > EPS);
+	right.normalize();
+	vNormal.crossproduct(vDirection, right);
 }
 
 void CCameraFirstEye::Move(int cmd, float val, float factor)
